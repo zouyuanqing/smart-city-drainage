@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Media
+backend/media/hls/*
+backend/media/screenshots/*
+!backend/media/hls/.gitkeep
+!backend/media/screenshots/.gitkeep
+
+# Models
+models/weights/*.pt
+models/weights/*.onnx
+!models/weights/.gitkeep
+
+# Docker
+docker-compose.override.yml
+
+# Logs
+*.log
+logs/

@@ -1,0 +1,152 @@
+version: "3.9"
+
+# ============================================================
+# 智慧城市神经末梢 — 市政排水智能监测与AI安防系统
+# Smart City Neural Endpoints — Drainage AI Monitoring System
+# ============================================================
+
+services:
+  # ===================== PostgreSQL (关系数据) =====================
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    container_name: scn-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: smart_drainage
+      POSTGRES_USER: drainage_admin
+      POSTGRES_PASSWORD: Dr@inage_S3cur3_2024!
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - scn-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U drainage_admin -d smart_drainage"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================== Redis (缓存/实时状态) =====================
+  redis:
+    image: redis:7-alpine
+    container_name: scn-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass R3d1s_S3cur3_2024!
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - scn-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ===================== InfluxDB (时序数据) =====================
+  influxdb:
+    image: influxdb:2.7-alpine
+    container_name: scn-influxdb
+    restart: unless-stopped
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: drainage_admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: Dr@inage_1nflux_2024!
+      DOCKER_INFLUXDB_INIT_ORG: smart-city
+      DOCKER_INFLUXDB_INIT_BUCKET: sensor_data
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: scn-influx-token-2024-secure
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdata:/var/lib/influxdb2
+    networks:
+      - scn-network
+    healthcheck:
+      test: ["CMD", "influx", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===================== FastAPI 后端 =====================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.cpu
+    container_name: scn-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://drainage_admin:Dr@inage_S3cur3_2024!@postgres:5432/smart_drainage
+      INFLUXDB_URL: http://influxdb:8086
+      INFLUXDB_TOKEN: scn-influx-token-2024-secure
+      INFLUXDB_ORG: smart-city
+      INFLUXDB_BUCKET: sensor_data
+      REDIS_URL: redis://:R3d1s_S3cur3_2024!@redis:6379/0
+      JWT_SECRET_KEY: scn-jwt-secret-key-change-in-production-2024
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 1440
+      MODEL_STORAGE_PATH: /app/models/weights
+      DEFAULT_MODEL_VERSION: v1
+      MODEL_INFERENCE_DEVICE: cpu
+      HLS_OUTPUT_DIR: /app/media/hls
+      SCREENSHOT_DIR: /app/media/screenshots
+      CORS_ORIGINS: '["http://localhost","http://localhost:80","http://localhost:3000","http://localhost:5173","http://frontend:80"]'
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./models:/app/models:ro
+      - hls_media:/app/media
+    networks:
+      - scn-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+
+  # ===================== Nginx (反向代理 + 静态资源) =====================
+  nginx:
+    image: nginx:alpine
+    container_name: scn-nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "8443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - hls_media:/usr/share/nginx/html/hls:ro
+    networks:
+      - scn-network
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # ===================== Frontend (开发模式 - 可选) =====================
+  # 正式部署时前端由 Nginx 托管静态文件
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: ../docker/frontend/Dockerfile
+    container_name: scn-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    networks:
+      - scn-network
+    profiles:
+      - production
+
+networks:
+  scn-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:
+  influxdata:
+  hls_media:

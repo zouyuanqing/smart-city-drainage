@@ -1,0 +1,35 @@
+Smart City Neural Endpoints — 市政排水智能监测与AI安防系统
+Copyright 2024 Smart City Neural Endpoints
+
+This product includes software developed by Smart City Neural Endpoints
+(https://github.com/smart-city-neural-endpoints).
+
+=== Attribution Notice ===
+
+If you use this software (in whole or in part) in your own product or
+service, you MUST include the following attribution in a prominent location
+such as:
+
+  - The "About" section of your application
+  - The documentation or README of your derivative work
+  - The footer of any web interface that uses this software
+  - The startup screen or splash screen of any application
+
+Required attribution text:
+
+    "Powered by Smart City Neural Endpoints — 智慧城市神经末梢
+     https://github.com/smart-city-neural-endpoints"
+
+=== Third-Party Libraries ===
+
+This product includes third-party open source software components:
+- FastAPI (MIT License)
+- React (MIT License)
+- Ultralytics YOLOv8 (AGPL-3.0)
+- PyTorch (BSD-3-Clause)
+- ECharts (Apache-2.0)
+- Leaflet (BSD-2-Clause)
+- Ant Design (MIT License)
+- And other dependencies listed in requirements.txt / package.json
+
+Each third-party component is licensed under its respective license terms.

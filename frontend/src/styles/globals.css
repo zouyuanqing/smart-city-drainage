@@ -1,0 +1,353 @@
+/* ============================================================
+   智慧城市神经末梢 — 暗黑科技风全局主题
+   Dark Cyberpunk / Sci-Fi Command Center
+   ============================================================ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========== CSS 变量 — 主题令牌 ========== */
+:root {
+  /* 背景层 */
+  --bg-deep:       #0A0E17;
+  --bg-panel:      #111827;
+  --bg-card:       #1A2332;
+  --bg-hover:      #243044;
+  --border-color:  #2D3A4A;
+
+  /* 霓虹色 */
+  --neon-blue:     #00D4FF;
+  --neon-cyan:     #00F5FF;
+  --neon-green:    #00FF88;
+  --neon-orange:   #FF8C00;
+  --neon-red:      #FF3366;
+  --neon-purple:   #A855F7;
+  --neon-pink:     #FF69B4;
+
+  /* 文字 */
+  --text-primary:  #E8EDF2;
+  --text-secondary:#8899AA;
+  --text-muted:    #556677;
+
+  /* 阴影/发光 */
+  --glow-blue:     0 0 10px rgba(0, 212, 255, 0.5), 0 0 30px rgba(0, 212, 255, 0.2);
+  --glow-green:    0 0 10px rgba(0, 255, 136, 0.5), 0 0 30px rgba(0, 255, 136, 0.2);
+  --glow-red:      0 0 10px rgba(255, 51, 102, 0.5), 0 0 30px rgba(255, 51, 102, 0.2);
+  --glow-orange:   0 0 10px rgba(255, 140, 0, 0.5), 0 0 30px rgba(255, 140, 0, 0.2);
+
+  /* 字体 */
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-sans: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-display: 'Orbitron', 'Rajdhani', sans-serif;
+}
+
+/* ========== 全局重置 ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  background-color: var(--bg-deep);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ========== 滚动条美化 ========== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-deep);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon-blue);
+}
+
+/* ========== 选择文本 ========== */
+::selection {
+  background: rgba(0, 212, 255, 0.3);
+  color: #fff;
+}
+
+/* ========== 网格背景装饰 ========== */
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* ========== 扫描线效果 ========== */
+.scan-line::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--neon-blue), transparent);
+  animation: scanLine 3s linear infinite;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+/* ========== 霓虹发光文字 ========== */
+.neon-text {
+  text-shadow: 0 0 7px var(--neon-blue),
+               0 0 20px rgba(0, 212, 255, 0.4),
+               0 0 40px rgba(0, 212, 255, 0.2);
+}
+
+.neon-text-green {
+  text-shadow: 0 0 7px var(--neon-green),
+               0 0 20px rgba(0, 255, 136, 0.4);
+}
+
+.neon-text-red {
+  text-shadow: 0 0 7px var(--neon-red),
+               0 0 20px rgba(255, 51, 102, 0.4);
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}
+
+/* ========== 霓虹边框 ========== */
+.neon-border {
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  box-shadow: inset 0 0 20px rgba(0, 212, 255, 0.05),
+              0 0 10px rgba(0, 212, 255, 0.1);
+  transition: all 0.3s ease;
+}
+.neon-border:hover {
+  border-color: rgba(0, 212, 255, 0.6);
+  box-shadow: inset 0 0 30px rgba(0, 212, 255, 0.08),
+              0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+/* ========== 数据流装饰线 ========== */
+.data-river {
+  position: relative;
+  overflow: hidden;
+}
+.data-river::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 200%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 212, 255, 0.08) 25%,
+    rgba(0, 245, 255, 0.15) 50%,
+    rgba(0, 212, 255, 0.08) 75%,
+    transparent 100%
+  );
+  animation: dataFlow 2s linear infinite;
+}
+
+/* ========== 脉冲点位 ========== */
+.pulse-dot {
+  position: relative;
+}
+.pulse-dot::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: currentColor;
+  animation: breathing 2s ease-in-out infinite;
+}
+.pulse-dot::after {
+  content: '';
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  top: -50%;
+  left: -50%;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0;
+  animation: breathing 2s ease-in-out 0.5s infinite;
+}
+
+/* ========== 面板标题装饰 ========== */
+.panel-title {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--neon-blue);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.panel-title::before {
+  content: '';
+  width: 4px;
+  height: 16px;
+  background: var(--neon-blue);
+  border-radius: 2px;
+  box-shadow: var(--glow-blue);
+}
+
+/* ========== 数值显示 ========== */
+.data-value {
+  font-family: var(--font-mono);
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.data-value.large {
+  font-size: 3rem;
+}
+.data-unit {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: var(--text-secondary);
+  margin-left: 0.25rem;
+}
+
+/* ========== 状态指示灯 ========== */
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.status-indicator.online { background: var(--neon-green); box-shadow: var(--glow-green); }
+.status-indicator.offline { background: #667788; }
+.status-indicator.fault { background: var(--neon-red); box-shadow: var(--glow-red); animation: pulseGlow 1s infinite; }
+.status-indicator.warning { background: var(--neon-orange); box-shadow: var(--glow-orange); }
+
+/* ========== 告警级别样式 ========== */
+.alert-critical {
+  border-left: 3px solid var(--neon-red);
+  animation: slideUp 0.5s ease-out;
+}
+.alert-warning {
+  border-left: 3px solid var(--neon-orange);
+}
+.alert-info {
+  border-left: 3px solid var(--neon-blue);
+}
+
+/* ========== Ant Design 暗黑覆盖 ========== */
+.ant-btn-primary {
+  background: linear-gradient(135deg, var(--neon-blue), #0099CC) !important;
+  border: none !important;
+  box-shadow: 0 0 15px rgba(0, 212, 255, 0.3) !important;
+}
+.ant-btn-primary:hover {
+  box-shadow: 0 0 25px rgba(0, 212, 255, 0.5) !important;
+}
+
+.ant-tag {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+.ant-badge-status-dot {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.ant-modal-content {
+  background: var(--bg-panel) !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.ant-drawer-content {
+  background: var(--bg-panel) !important;
+}
+
+/* ========== React Player 容器 ========== */
+.video-container {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #000;
+}
+.video-container::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* ========== 地图容器 ========== */
+.map-container {
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+/* 覆盖 Leaflet 暗黑主题 */
+.leaflet-container {
+  background: var(--bg-deep) !important;
+}
+
+/* ========== 脉冲标记动画 (全局定义，避免每个标记重复注入) ========== */
+@keyframes pulse-ring {
+  0%   { transform: scale(0.85); opacity: 0.5; }
+  50%  { opacity: 0.15; }
+  100% { transform: scale(1.3); opacity: 0; }
+}
+
+.pulse-marker-ring {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0;
+  animation: pulse-ring 3s ease-out infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.pulse-marker-dot {
+  position: absolute;
+  top: 16%; left: 16%;
+  width: 68%; height: 68%;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+/* ========== 响应式工具 ========== */
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: block !important; }
+}
+
+@media (min-width: 769px) {
+  .show-mobile { display: none !important; }
+}
+
+/* ========== Framer Motion 全局 ========== */
+[data-motion] {
+  will-change: transform, opacity;
+}

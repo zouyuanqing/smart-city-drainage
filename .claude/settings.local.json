@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(pip install *)",
+      "Bash(npm install *)",
+      "Bash(npm --prefix /d/smart-city-drainage/frontend install)",
+      "Bash(uvicorn app.main:app *)",
+      "Bash(npm *)",
+      "Bash(curl -s http://localhost:5173)",
+      "Bash(curl *)",
+      "Bash(npx --prefix /d/smart-city-drainage/frontend tsc --noEmit)",
+      "Bash(python3 -c \"import fastapi; print\\('fastapi OK'\\)\")",
+      "Bash(npx --prefix D:/smart-city-drainage/frontend tsc --noEmit)",
+      "Bash(python -m py_compile app/core/database.py)",
+      "Bash(python -m py_compile app/api/routes.py)",
+      "Bash(python -m py_compile app/main.py)",
+      "Bash(python -m py_compile app/services/mock_data_generator.py)",
+      "Bash(python -m py_compile app/schemas/schemas.py)",
+      "Bash(python -c ' *)",
+      "Bash(taskkill //F //IM uvicorn.exe)",
+      "Bash(taskkill //F //IM python.exe)",
+      "Bash(taskkill //F //FI \"IMAGENAME eq python.exe\")"
+    ]
+  }
+}
