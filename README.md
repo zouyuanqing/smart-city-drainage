@@ -793,7 +793,7 @@ Copyright 2024 Smart City Neural Endpoints
 
 ```
 Powered by Smart City Neural Endpoints — 智慧城市神经末梢
-https://github.com/smart-city-neural-endpoints
+https://github.com/zouyuanqing/smart-city-drainage
 ```
 
 4. **声明修改** — 如果您修改了源代码，必须在修改的文件中注明变更
