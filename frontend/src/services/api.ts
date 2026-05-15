@@ -35,6 +35,12 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     const msg = error.response?.data?.detail || error.message || '网络请求失败';
+    if (error.response?.status === 401) {
+      localStorage.removeItem('scn_access_token');
+      localStorage.removeItem('scn_user');
+      localStorage.removeItem('scn_user_role');
+      window.location.href = '/login';
+    }
     console.error(`[API Error] ${error.config?.url}:`, msg);
     return Promise.reject(new Error(msg));
   },
@@ -162,6 +168,22 @@ export const mockAPI = {
   updateConfig: (config: Partial<MockConfig>) => api.put('/mock/config', config),
   start: () => api.post('/mock/start'),
   stop: () => api.post('/mock/stop'),
+};
+
+// ============================
+// 数据导出
+// ============================
+export const exportAPI = {
+  sensorData: async (params?: { device_id?: string; start_time?: string; end_time?: string }) => {
+    const query = new URLSearchParams(params as Record<string, string>).toString()
+    const response = await api.get(`/sensors/export?${query}`, { responseType: 'blob' })
+    return response
+  },
+  alertData: async (params?: { level?: string; start_time?: string; end_time?: string }) => {
+    const query = new URLSearchParams(params as Record<string, string>).toString()
+    const response = await api.get(`/alerts/export?${query}`, { responseType: 'blob' })
+    return response
+  },
 };
 
 export default api;

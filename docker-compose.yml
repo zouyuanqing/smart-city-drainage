@@ -58,6 +58,7 @@ services:
       DOCKER_INFLUXDB_INIT_ORG: smart-city
       DOCKER_INFLUXDB_INIT_BUCKET: sensor_data
       DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: scn-influx-token-2024-secure
+      DOCKER_INFLUXDB_INIT_RETENTION: 90d
     ports:
       - "8086:8086"
     volumes:
@@ -141,6 +142,41 @@ services:
     profiles:
       - production
 
+  # ===================== Prometheus (监控指标) =====================
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: scn-prometheus
+    profiles:
+      - monitoring
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheusdata:/prometheus
+    networks:
+      - scn-network
+    depends_on:
+      - backend
+
+  # ===================== Grafana (监控仪表盘) =====================
+  grafana:
+    image: grafana/grafana:10.3.0
+    container_name: scn-grafana
+    profiles:
+      - monitoring
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: Grafana@2024
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafanadata:/var/lib/grafana
+    networks:
+      - scn-network
+    depends_on:
+      - prometheus
+
 networks:
   scn-network:
     driver: bridge
@@ -150,3 +186,5 @@ volumes:
   redisdata:
   influxdata:
   hls_media:
+  prometheusdata:
+  grafanadata:

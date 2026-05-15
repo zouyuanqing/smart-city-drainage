@@ -46,3 +46,4 @@ docker-compose.override.yml
 # Logs
 *.log
 logs/
+logs/*.log

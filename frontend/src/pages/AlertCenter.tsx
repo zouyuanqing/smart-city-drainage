@@ -9,13 +9,14 @@ import {
   CloseCircleOutlined,
   ReloadOutlined,
   FilterOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertPanel } from '@components/alerts/AlertPanel';
 import { Loading, EmptyState } from '@components/common';
 import { useAppStore } from '@/store/useAppStore';
 import { useSSE } from '@/hooks/useSSE';
-import { alertAPI } from '@/services/api';
+import { alertAPI, exportAPI } from '@/services/api';
 import type { Alert, AlertLevel } from '@/types';
 
 export function AlertCenter() {
@@ -23,6 +24,24 @@ export function AlertCenter() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<AlertLevel | 'all'>('all');
   const [fetchedAlerts, setFetchedAlerts] = useState<Alert[]>([]);
+
+  const handleExportCSV = useCallback(async () => {
+    try {
+      const params: { level?: string } = {};
+      if (filter !== 'all') params.level = filter;
+      const res = await exportAPI.alertData(params);
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `alerts_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      message.success('导出成功');
+    } catch {
+      message.error('导出失败');
+    }
+  }, [filter]);
 
   useSSE({
     onAlert: (alert: Alert) => addAlert(alert),
@@ -80,6 +99,9 @@ export function AlertCenter() {
             ]}
           />
           <Button size="small" icon={<ReloadOutlined />} onClick={fetchAlerts} />
+          <Button size="small" icon={<DownloadOutlined />} onClick={handleExportCSV}>
+            导出 CSV
+          </Button>
         </div>
       </div>
 

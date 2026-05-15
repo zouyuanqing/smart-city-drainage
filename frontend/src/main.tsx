@@ -10,6 +10,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { ConfigProvider, theme } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import App from './App';
+import './i18n';
 import './styles/globals.css';
 
 // Ant Design 暗黑主题配置

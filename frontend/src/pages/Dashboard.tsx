@@ -17,10 +17,11 @@ import {
   ReloadOutlined,
   UpOutlined,
   DownOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { useAppStore } from '@/store/useAppStore';
 import { useSSE } from '@/hooks/useSSE';
-import { sensorAPI, deviceAPI, streamAPI } from '@/services/api';
+import { sensorAPI, deviceAPI, streamAPI, exportAPI } from '@/services/api';
 import { MapVisualization } from '@components/map/MapVisualization';
 import { VideoPlayer } from '@components/video/VideoPlayer';
 import { AlertPanel } from '@components/alerts/AlertPanel';
@@ -160,6 +161,24 @@ export function Dashboard() {
   const [filteredDevices, setFilteredDevices] = useState<Device[]>([]);
   const [alertsCollapsed, setAlertsCollapsed] = useState(false);
   const [activeStreams, setActiveStreams] = useState<any[]>([]);
+
+  const handleExportSensorData = useCallback(async () => {
+    try {
+      const params: { device_id?: string } = {};
+      if (selectedDeviceId) params.device_id = selectedDeviceId;
+      const res = await exportAPI.sensorData(params);
+      const blob = new Blob([res.data], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `sensor_data_${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      notification.success({ message: '导出成功', description: '传感器数据已下载' });
+    } catch {
+      notification.error({ message: '导出失败', description: '请稍后重试' });
+    }
+  }, [selectedDeviceId]);
 
   // 告警通知弹窗
   useAlertNotifications();
@@ -372,7 +391,13 @@ export function Dashboard() {
 
           {/* 水位趋势图 */}
           <div className={alertsCollapsed ? 'flex-1 min-h-[180px]' : 'h-[180px]'}>
-            <div className="panel-title">📊 液位实时趋势</div>
+            <div className="panel-title flex items-center">
+              <span>📊 液位实时趋势</span>
+              <Button size="small" icon={<DownloadOutlined />} onClick={handleExportSensorData}
+                      className="ml-auto text-[10px]" type="text">
+                导出数据
+              </Button>
+            </div>
             <div className="h-[calc(100%-30px)]">
               <WaterLevelChart deviceId={selectedDeviceId || devices[0]?.id} />
             </div>

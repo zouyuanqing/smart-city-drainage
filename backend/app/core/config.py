@@ -106,6 +106,22 @@ class Settings(BaseSettings):
     RATE_LIMIT_PER_MINUTE: int = Field(default=60, description="每分钟请求限制")
     MAX_UPLOAD_SIZE_MB: int = Field(default=100, description="最大上传大小 (MB)")
 
+    # ============ SMTP ============
+    SMTP_ENABLED: bool = False
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USE_TLS: bool = True
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = "noreply@smartcity.local"
+
+    # ============ Webhook ============
+    WEBHOOK_ENABLED: bool = False
+    ALERT_WEBHOOK_URLS: list[str] = []
+
+    # ============ Alert Notification ============
+    ALERT_EMAIL_RECIPIENTS: list[str] = []
+
     @property
     def model_storage_dir(self) -> Path:
         """模型存储目录 Path 对象"""

@@ -1,0 +1,29 @@
+- [x] 后端 Black/isort/Flake8/mypy 配置文件已创建且可正常运行
+- [x] 前端 ESLint + Prettier 配置文件已创建且 `npm run lint` 可正常运行
+- [x] 后端 pytest 测试框架已搭建，至少覆盖 health、auth、devices、alerts 四个 API
+- [x] 前端 vitest 测试框架已搭建，至少覆盖 1 个 hook 和 1 个组件
+- [x] GitHub Actions CI 流水线已配置，push/PR 自动触发
+- [x] Prometheus `/metrics` 端点可访问，返回标准指标
+- [x] docker-compose.yml 包含 Prometheus + Grafana 服务
+- [x] 日志以 JSON 结构化格式输出到 stdout 和文件
+- [x] 日志文件配置了轮转（10MB × 10 个文件）
+- [x] SSE 流包含 `retry: 3000` 字段
+- [x] SSE 支持 Last-Event-ID 请求头
+- [x] 前端 useSSE hook 实现了自动重连（指数退避）
+- [x] InfluxDB 配置了 90 天数据保留策略
+- [x] 备份脚本 `scripts/backup.sh` 可正常执行
+- [x] 恢复脚本 `scripts/restore.sh` 可正常执行
+- [x] 邮件通知功能可发送告警邮件
+- [x] Webhook 通知功能可发送 HTTP POST 请求
+- [x] RoleEnum 定义了 admin/operator/viewer 三种角色
+- [x] `require_role()` 装饰器可正确拦截无权限请求
+- [x] JWT Token 包含 role 信息
+- [x] 管理端点对 viewer 角色返回 403
+- [x] 前端根据角色隐藏/禁用管理操作
+- [x] `/api/sensors/export` 可下载 CSV 文件
+- [x] `/api/alerts/export` 可下载 CSV 文件
+- [x] 前端导出按钮可触发下载
+- [x] i18next 已配置，支持 zh 和 en 两种语言
+- [x] 所有前端硬编码中文已提取到语言包
+- [x] 设置页面可切换语言
+- [x] `scripts/download-model.sh` 可下载 YOLOv8n 权重文件

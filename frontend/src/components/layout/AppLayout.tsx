@@ -19,7 +19,9 @@ import {
   LogoutOutlined,
 } from '@ant-design/icons';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '@/store/useAppStore';
+import { hasRole, getUserRole } from '@/store/useAppStore';
 import { modelAPI } from '@/services/api';
 import type { ModelStatus } from '@/types';
 
@@ -32,6 +34,7 @@ interface AppLayoutProps {
 export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
   const { sidebarCollapsed, toggleSidebar, alerts } = useAppStore();
   const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
   const [currentTime, setCurrentTime] = useState('');
@@ -51,18 +54,22 @@ export function AppLayout({ children }: AppLayoutProps) {
   const handleLogout = () => {
     localStorage.removeItem('scn_access_token');
     localStorage.removeItem('scn_user');
+    localStorage.removeItem('scn_user_role');
     navigate('/login', { replace: true });
   };
 
   const currentPath = location.pathname;
+  const userRole = getUserRole();
 
-  const menuItems = [
-    { key: 'dashboard', path: '/dashboard', icon: <DashboardOutlined />, label: '驾驶舱总览' },
-    { key: 'map', path: '/map', icon: <EnvironmentOutlined />, label: 'GIS 地图' },
-    { key: 'video', path: '/video', icon: <VideoCameraOutlined />, label: '视频监控' },
-    { key: 'alerts', path: '/alerts', icon: <AlertOutlined />, label: `告警中心 ${unackCount > 0 ? `(${unackCount})` : ''}` },
-    { key: 'settings', path: '/settings', icon: <SettingOutlined />, label: '系统设置' },
+  const allMenuItems = [
+    { key: 'dashboard', path: '/dashboard', icon: <DashboardOutlined />, label: t('nav.dashboard'), requiredRole: 'viewer' as const },
+    { key: 'map', path: '/map', icon: <EnvironmentOutlined />, label: t('nav.map'), requiredRole: 'viewer' as const },
+    { key: 'video', path: '/video', icon: <VideoCameraOutlined />, label: t('nav.video'), requiredRole: 'operator' as const },
+    { key: 'alerts', path: '/alerts', icon: <AlertOutlined />, label: `${t('nav.alerts')} ${unackCount > 0 ? `(${unackCount})` : ''}`, requiredRole: 'operator' as const },
+    { key: 'settings', path: '/settings', icon: <SettingOutlined />, label: t('nav.settings'), requiredRole: 'admin' as const },
   ];
+
+  const menuItems = allMenuItems.filter(item => hasRole(item.requiredRole));
 
   return (
     <Layout className="min-h-screen bg-cyber-black">
@@ -76,7 +83,7 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="h-6 w-px bg-cyber-border mx-2" />
 
           <span className="font-display text-sm font-bold neon-text tracking-wider">
-            SCN | 智慧排水指挥中心
+            SCN | {t('app.subtitle')}
           </span>
         </div>
 
@@ -149,7 +156,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                 <LogoutOutlined className="text-text-muted group-hover:text-neon-red text-lg" />
                 {!sidebarCollapsed && (
                   <span className="text-text-muted text-sm font-mono tracking-wide group-hover:text-neon-red">
-                    退出登录
+                    {t('nav.logout')}
                   </span>
                 )}
               </motion.div>

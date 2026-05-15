@@ -14,12 +14,16 @@ from __future__ import annotations
 
 import logging
 import sys
+import uuid
 from contextlib import asynccontextmanager
+from logging.handlers import RotatingFileHandler
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from prometheus_fastapi_instrumentator import Instrumentator
+from pythonjsonlogger import jsonlogger
 
 from app.api.routes import router as api_router
 from app.core.config import settings
@@ -38,18 +42,38 @@ import io
 if hasattr(sys.stdout, 'buffer'):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL, logging.INFO),
-    format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    stream=sys.stdout,
-)
 
-# 降低第三方库日志级别
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
-logging.getLogger("urllib3").setLevel(logging.WARNING)
-logging.getLogger("ultralytics").setLevel(logging.WARNING)
+def setup_logging():
+    log_level = getattr(logging, settings.LOG_LEVEL, logging.INFO)
+
+    json_formatter = jsonlogger.JsonFormatter(
+        '%(timestamp)s %(level)s %(name)s %(message)s',
+        rename_fields={
+            'timestamp': 'timestamp',
+            'level': 'level',
+            'name': 'logger',
+        }
+    )
+
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(json_formatter)
+
+    file_handler = RotatingFileHandler(
+        'logs/app.log',
+        maxBytes=10 * 1024 * 1024,
+        backupCount=10,
+        encoding='utf-8',
+    )
+    file_handler.setFormatter(json_formatter)
+
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    root_logger.addHandler(console_handler)
+    root_logger.addHandler(file_handler)
+
+    for lib in ['httpx', 'httpcore', 'urllib3', 'ultralytics', 'uvicorn.access']:
+        logging.getLogger(lib).setLevel(logging.WARNING)
+
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +112,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("=" * 70)
     logger.info("🏙️  %s v%s 启动中...", settings.APP_NAME, settings.APP_VERSION)
     logger.info("=" * 70)
+
+    setup_logging()
 
     # --- 启动阶段 ---
 
@@ -177,6 +203,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+Instrumentator(
+    should_group_status_codes=True,
+    should_ignore_untemplated=True,
+    excluded_handlers=["/health", "/metrics"],
+).instrument(app).expose(app, endpoint="/metrics", include_in_schema=False)
+
 
 # ============================================================
 # CORS 中间件
@@ -205,6 +237,14 @@ async def add_process_time_header(request, call_next):
     process_time = time.perf_counter() - start_time
     response.headers["X-Process-Time"] = f"{process_time:.3f}s"
     response.headers["X-Powered-By"] = "Smart City Neural Endpoints"
+    return response
+
+
+@app.middleware("http")
+async def request_id_middleware(request, call_next):
+    request_id = request.headers.get("X-Request-ID", str(uuid.uuid4()))
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
     return response
 
 

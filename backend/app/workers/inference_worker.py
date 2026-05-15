@@ -26,6 +26,7 @@ import numpy as np
 
 from app.core.config import settings
 from app.core.model_manager import get_model_manager
+from app.services.notification_service import notification_service
 from app.services.sse_manager import SSEManager
 
 logger = logging.getLogger(__name__)
@@ -216,6 +217,7 @@ class InferenceWorker:
                     await redis_client.publish_alert(alert_data)
             except Exception:
                 pass
+            await notification_service.notify_alert(alert_data)
             logger.warning(
                 "🚨 [%s] 告警: %s (置信度: %.2f)",
                 self.camera_id,

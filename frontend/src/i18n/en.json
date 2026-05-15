@@ -1,0 +1,95 @@
+{
+  "app": {
+    "title": "Smart City Neural Endpoints",
+    "subtitle": "Municipal Drainage Monitoring & AI Security System"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "map": "GIS Map",
+    "video": "Video Monitor",
+    "alerts": "Alert Center",
+    "settings": "Settings",
+    "logout": "Logout"
+  },
+  "login": {
+    "title": "System Login",
+    "username": "Username",
+    "password": "Password",
+    "submit": "Login",
+    "success": "Login successful",
+    "failed": "Login failed",
+    "usernameRequired": "Please enter username",
+    "passwordRequired": "Please enter password"
+  },
+  "dashboard": {
+    "title": "Dashboard Overview",
+    "onlineDevices": "Online Devices",
+    "offlineDevices": "Offline Devices",
+    "totalAlerts": "Today's Alerts",
+    "activeStreams": "Active Streams",
+    "waterLevel": "Water Level",
+    "flowTrend": "Flow Trend",
+    "recentAlerts": "Recent Alerts",
+    "videoMatrix": "Video Matrix"
+  },
+  "map": {
+    "title": "GIS Map View",
+    "deviceStatus": "Device Status",
+    "online": "Online",
+    "offline": "Offline",
+    "fault": "Fault"
+  },
+  "video": {
+    "title": "Video Monitor",
+    "startStream": "Start Stream",
+    "stopStream": "Stop Stream",
+    "noStreams": "No active streams",
+    "startInference": "Start Inference",
+    "stopInference": "Stop Inference"
+  },
+  "alerts": {
+    "title": "Alert Center",
+    "level": "Level",
+    "type": "Type",
+    "time": "Time",
+    "device": "Device",
+    "status": "Status",
+    "acknowledge": "Acknowledge",
+    "resolve": "Resolve",
+    "acknowledged": "Acknowledged",
+    "resolved": "Resolved",
+    "pending": "Pending",
+    "critical": "Critical",
+    "warning": "Warning",
+    "info": "Info",
+    "export": "Export CSV",
+    "filter": "Filter"
+  },
+  "settings": {
+    "title": "Settings",
+    "systemStatus": "System Status",
+    "modelManagement": "Model Management",
+    "mockData": "Mock Data",
+    "notification": "Notification",
+    "language": "Language",
+    "connected": "Connected",
+    "disconnected": "Disconnected"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error occurred",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "refresh": "Refresh",
+    "noData": "No data",
+    "total": "Total",
+    "items": "items"
+  }
+}

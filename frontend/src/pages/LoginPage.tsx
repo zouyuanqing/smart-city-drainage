@@ -14,6 +14,7 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { authAPI } from '@/services/api';
 
 // 背景粒子效果
@@ -45,6 +46,7 @@ function LoginParticles() {
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -52,22 +54,23 @@ export function LoginPage() {
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      message.warning('请输入用户名和密码');
+      message.warning(t('login.usernameRequired'));
       return;
     }
 
     setLoading(true);
     try {
       const res = await authAPI.login(username, password);
-      const { access_token, user } = res.data;
+      const { access_token, user, role } = res.data;
 
       localStorage.setItem('scn_access_token', access_token);
       localStorage.setItem('scn_user', JSON.stringify(user));
+      localStorage.setItem('scn_user_role', role || user.role || 'viewer');
 
       message.success(`欢迎回来, ${user.full_name || user.username}`);
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
-      message.error(err.message || '登录失败，请检查用户名和密码');
+      message.error(err.message || t('login.failed'));
     } finally {
       setLoading(false);
     }
@@ -111,25 +114,25 @@ export function LoginPage() {
             SCN ENDPOINTS
           </h1>
           <p className="text-text-muted text-xs font-mono uppercase tracking-widest mt-2">
-            智慧城市神经末梢
+            {t('app.title')}
           </p>
         </div>
 
         {/* 表单 */}
         <div className="bg-cyber-dark/80 backdrop-blur-md border border-cyber-border rounded-lg p-8">
           <Tag color="cyan" className="mb-6 font-mono text-[10px] tracking-wider">
-            身份认证
+            {t('login.title')}
           </Tag>
 
           <div className="space-y-5">
             <div>
               <label className="text-text-secondary text-xs font-mono uppercase tracking-wider mb-1.5 block">
-                用户名
+                {t('login.username')}
               </label>
               <Input
                 size="large"
                 prefix={<UserOutlined className="text-text-muted" />}
-                placeholder="请输入用户名"
+                placeholder={t('login.usernameRequired')}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onPressEnter={handleLogin}
@@ -139,7 +142,7 @@ export function LoginPage() {
 
             <div>
               <label className="text-text-secondary text-xs font-mono uppercase tracking-wider mb-1.5 block">
-                密码
+                {t('login.password')}
               </label>
               <Input
                 size="large"
@@ -154,7 +157,7 @@ export function LoginPage() {
                     className="text-text-muted"
                   />
                 }
-                placeholder="请输入密码"
+                placeholder={t('login.passwordRequired')}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onPressEnter={handleLogin}
@@ -170,7 +173,7 @@ export function LoginPage() {
               onClick={handleLogin}
               className="h-12 font-mono text-sm tracking-wider mt-4"
             >
-              进入系统
+              {t('login.submit')}
             </Button>
           </div>
 

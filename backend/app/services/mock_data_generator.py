@@ -15,6 +15,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from app.services.notification_service import notification_service
 from app.services.sse_manager import SSEManager
 
 logger = logging.getLogger(__name__)
@@ -130,6 +131,7 @@ class MockDataGenerator:
                                     await redis_client.publish_alert(alert)
                             except Exception:
                                 pass
+                            await notification_service.notify_alert(alert)
                     loop_count = 0
                     self._last_alert_at = elapsed
 

@@ -1,0 +1,95 @@
+{
+  "app": {
+    "title": "智慧城市神经末梢",
+    "subtitle": "市政排水智能监测与AI安防系统"
+  },
+  "nav": {
+    "dashboard": "驾驶舱总览",
+    "map": "GIS 地图",
+    "video": "视频监控",
+    "alerts": "告警中心",
+    "settings": "系统设置",
+    "logout": "退出登录"
+  },
+  "login": {
+    "title": "系统登录",
+    "username": "用户名",
+    "password": "密码",
+    "submit": "登 录",
+    "success": "登录成功",
+    "failed": "登录失败",
+    "usernameRequired": "请输入用户名",
+    "passwordRequired": "请输入密码"
+  },
+  "dashboard": {
+    "title": "驾驶舱总览",
+    "onlineDevices": "在线设备",
+    "offlineDevices": "离线设备",
+    "totalAlerts": "今日告警",
+    "activeStreams": "活跃视频流",
+    "waterLevel": "液位监测",
+    "flowTrend": "流量趋势",
+    "recentAlerts": "最近告警",
+    "videoMatrix": "视频矩阵"
+  },
+  "map": {
+    "title": "GIS 地图视图",
+    "deviceStatus": "设备状态",
+    "online": "在线",
+    "offline": "离线",
+    "fault": "故障"
+  },
+  "video": {
+    "title": "视频监控",
+    "startStream": "启动视频流",
+    "stopStream": "停止视频流",
+    "noStreams": "暂无活跃视频流",
+    "startInference": "启动推理",
+    "stopInference": "停止推理"
+  },
+  "alerts": {
+    "title": "告警中心",
+    "level": "级别",
+    "type": "类型",
+    "time": "时间",
+    "device": "设备",
+    "status": "状态",
+    "acknowledge": "确认",
+    "resolve": "解决",
+    "acknowledged": "已确认",
+    "resolved": "已解决",
+    "pending": "待处理",
+    "critical": "严重",
+    "warning": "警告",
+    "info": "信息",
+    "export": "导出 CSV",
+    "filter": "筛选"
+  },
+  "settings": {
+    "title": "系统设置",
+    "systemStatus": "系统状态",
+    "modelManagement": "模型管理",
+    "mockData": "模拟数据",
+    "notification": "通知设置",
+    "language": "语言",
+    "connected": "已连接",
+    "disconnected": "未连接"
+  },
+  "common": {
+    "loading": "加载中...",
+    "error": "发生错误",
+    "retry": "重试",
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除",
+    "edit": "编辑",
+    "search": "搜索",
+    "filter": "筛选",
+    "export": "导出",
+    "refresh": "刷新",
+    "noData": "暂无数据",
+    "total": "共",
+    "items": "条"
+  }
+}

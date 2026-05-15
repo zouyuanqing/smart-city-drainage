@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import csv
 import io
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -19,7 +20,6 @@ from fastapi import (
     UploadFile, WebSocket, WebSocketDisconnect, status,
 )
 from fastapi.responses import StreamingResponse
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import select
 from sse_starlette.sse import EventSourceResponse
 
@@ -28,10 +28,13 @@ from app.core.model_manager import get_model_manager
 from app.core.security import (
     create_access_token,
     decode_access_token,
+    get_current_user,
     get_password_hash,
+    require_auth,
+    require_role,
     verify_password,
 )
-from app.models.db_models import Alert as AlertModel, Device as DeviceModel, User as UserModel
+from app.models.db_models import Alert as AlertModel, Device as DeviceModel, RoleEnum, User as UserModel
 from app.schemas.schemas import (
     AlertAcknowledge,
     AlertResponse,
@@ -54,35 +57,7 @@ from app.services.stream_service import stream_service
 from app.services.system_status import get_system_status
 
 router = APIRouter(prefix="/api")
-security = HTTPBearer(auto_error=False)
 sse_manager = SSEManager.get_instance()
-
-
-# ============================================================
-# 依赖注入
-# ============================================================
-
-async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-) -> Optional[dict]:
-    """获取当前认证用户 (可选认证)"""
-    if credentials is None:
-        return None
-
-    payload = decode_access_token(credentials.credentials)
-    if payload is None:
-        raise HTTPException(status_code=401, detail="无效的认证令牌")
-    return payload
-
-
-async def require_auth(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-) -> dict:
-    """强制认证依赖"""
-    payload = decode_access_token(credentials.credentials)
-    if payload is None:
-        raise HTTPException(status_code=401, detail="认证令牌无效或已过期")
-    return payload
 
 
 # ============================================================
@@ -145,19 +120,22 @@ async def login(request: TokenRequest):
     access_token = create_access_token(
         subject=str(user.id),
         expires_delta=expires_delta,
-        extra_claims={"username": user.username, "role": user.role},
+        extra_claims={"username": user.username, "role": user.role.value if isinstance(user.role, RoleEnum) else user.role},
     )
+
+    user_role = user.role.value if isinstance(user.role, RoleEnum) else user.role
 
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
         expires_in=1440 * 60,
+        role=user_role,
         user=UserBrief(
             id=user.id,
             username=user.username,
             email=user.email,
             full_name=user.full_name,
-            role=user.role,
+            role=user_role,
         ),
     )
 
@@ -186,7 +164,7 @@ async def get_model_status():
 @router.post("/models/switch")
 async def switch_model(
     request: ModelSwitchRequest,
-    user: dict = Depends(require_auth),
+    user: dict = Depends(require_role(RoleEnum.admin)),
 ):
     """
     热切换 AI 模型 (零停机)
@@ -214,7 +192,7 @@ async def switch_model(
 async def upload_model(
     file: UploadFile = File(...),
     version: str = Query(..., description="模型版本名"),
-    user: dict = Depends(require_auth),
+    user: dict = Depends(require_role(RoleEnum.admin)),
 ):
     """
     上传新模型权重文件到仓库
@@ -316,7 +294,7 @@ async def detect_objects(request: InferenceRequest):
 # ============================================================
 
 @router.post("/streams/start", response_model=dict)
-async def start_stream(request: StreamCreate, user: dict = Depends(require_auth)):
+async def start_stream(request: StreamCreate, user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator))):
     """启动 RTSP → HLS 转码"""
     try:
         stream = await stream_service.start_stream(
@@ -334,7 +312,7 @@ async def start_stream(request: StreamCreate, user: dict = Depends(require_auth)
 
 
 @router.post("/streams/{camera_id}/stop")
-async def stop_stream(camera_id: str, user: dict = Depends(require_auth)):
+async def stop_stream(camera_id: str, user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator))):
     """停止视频流转码"""
     await stream_service.stop_stream(camera_id)
     return {"status": "stopped", "camera_id": camera_id}
@@ -347,7 +325,7 @@ async def get_streams_status():
 
 
 @router.post("/streams/{camera_id}/inference/start")
-async def start_inference(camera_id: str, current_user: dict = Depends(get_current_user)):
+async def start_inference(camera_id: str, current_user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator))):
     from app.services.stream_service import stream_service
     stream_info = stream_service.streams.get(camera_id)
     if not stream_info:
@@ -365,7 +343,7 @@ async def start_inference(camera_id: str, current_user: dict = Depends(get_curre
 
 
 @router.post("/streams/{camera_id}/inference/stop")
-async def stop_inference(camera_id: str, current_user: dict = Depends(get_current_user)):
+async def stop_inference(camera_id: str, current_user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator))):
     from app.services.stream_service import stream_service
     try:
         stream_service.worker_pool.remove_worker(camera_id)
@@ -388,41 +366,17 @@ async def sse_events(request: Request):
       - alerts: 告警事件
       - system: 系统状态变更
 
+    支持 Last-Event-ID 请求头实现断线重连后事件重放。
+
     前端使用 EventSource 连接:
       const es = new EventSource('/api/sse/events');
       es.addEventListener('sensors', (e) => {...});
     """
-    client_id, queue = await sse_manager.connect()
-
-    async def event_generator():
-        try:
-            yield {
-                "event": "connected",
-                "data": '{"client_id":"%s","status":"connected","sse_clients":%d}' % (
-                    client_id, sse_manager.client_count
-                ),
-            }
-
-            while True:
-                if await request.is_disconnected():
-                    break
-
-                try:
-                    import asyncio as aio
-                    event = await aio.wait_for(queue.get(), timeout=30.0)
-                    yield event
-                except aio.TimeoutError:
-                    yield {"comment": "heartbeat"}
-
-        except asyncio.CancelledError:
-            pass
-        except Exception:
-            logger = __import__('logging').getLogger(__name__)
-            logger.exception("SSE 客户端 %s 异常断开", client_id)
-        finally:
-            await sse_manager.disconnect(client_id)
-
-    return EventSourceResponse(event_generator())
+    last_event_id = request.headers.get("Last-Event-ID")
+    client_id, queue = await sse_manager.connect(last_event_id)
+    return EventSourceResponse(
+        sse_manager.event_generator(client_id, queue, last_event_id)
+    )
 
 
 # ============================================================
@@ -610,6 +564,57 @@ async def get_sensor_history(
     return {"device_id": device_id, "data": data, "source": "mock"}
 
 
+@router.get("/sensors/export")
+async def export_sensor_data(
+    device_id: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    format: str = "csv",
+    current_user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
+    """导出传感器历史数据"""
+    try:
+        from app.services.influxdb_service import influxdb_service
+        from app.core.config import settings
+        if influxdb_service and influxdb_service._client:
+            tables = influxdb_service._query_api.query_data_frame(
+                f'from(bucket: "{settings.INFLUXDB_BUCKET}")'
+                f'  |> range(start: {start_time or "-30d"}, stop: {end_time or "now()"})'
+                f'  |> filter(fn: (r) => r._measurement == "sensor_readings")'
+                + (f'  |> filter(fn: (r) => r.device_id == "{device_id}")' if device_id else ""),
+                org=settings.INFLUXDB_ORG,
+            )
+            if isinstance(tables, list) and len(tables) > 0:
+                import pandas as pd
+                df = pd.concat(tables)
+            elif hasattr(tables, "empty") and not tables.empty:
+                import pandas as pd
+                df = tables
+            else:
+                df = None
+        else:
+            df = None
+    except Exception:
+        df = None
+
+    output = io.StringIO()
+    if format == "csv":
+        writer = csv.writer(output)
+        writer.writerow(["timestamp", "device_id", "field", "value"])
+        if df is not None:
+            import pandas as pd
+            for _, row in df.iterrows():
+                writer.writerow([row.get("_time", ""), row.get("device_id", ""), row.get("_field", ""), row.get("_value", "")])
+        output.seek(0)
+        return StreamingResponse(
+            iter([output.getvalue()]),
+            media_type="text/csv",
+            headers={"Content-Disposition": f"attachment; filename=sensor_data_{datetime.now().strftime('%Y%m%d')}.csv"},
+        )
+
+    return {"error": "Unsupported format"}
+
+
 # ============================================================
 # 告警管理
 # ============================================================
@@ -681,8 +686,46 @@ async def get_alerts(
     return {"alerts": mock_alerts, "total": len(mock_alerts), "source": "mock"}
 
 
+@router.get("/alerts/export")
+async def export_alert_data(
+    level: str | None = None,
+    start_time: str | None = None,
+    end_time: str | None = None,
+    format: str = "csv",
+    current_user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
+    """导出告警记录"""
+    from app.models.db_models import Alert
+    alerts = []
+    try:
+        async with get_db_session() as db:
+            query = select(Alert).order_by(Alert.created_at.desc())
+            if level:
+                query = query.where(Alert.level == level)
+            result = await db.execute(query.limit(10000))
+            alerts = result.scalars().all()
+    except Exception:
+        pass
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["id", "device_id", "alert_type", "level", "title", "description", "is_acknowledged", "is_resolved", "created_at"])
+    for alert in alerts:
+        writer.writerow([
+            str(alert.id), str(alert.device_id), alert.alert_type, alert.level,
+            alert.title, alert.description or "", alert.is_acknowledged,
+            alert.is_resolved, str(alert.created_at) if alert.created_at else ""
+        ])
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=alerts_{datetime.now().strftime('%Y%m%d')}.csv"},
+    )
+
+
 @router.post("/alerts/{alert_id}/acknowledge")
-async def acknowledge_alert(alert_id: str, action: AlertAcknowledge, user: dict = Depends(require_auth)):
+async def acknowledge_alert(alert_id: str, action: AlertAcknowledge, user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator))):
     try:
         async with get_db_session() as db:
             result = await db.execute(select(AlertModel).where(AlertModel.id == alert_id))
@@ -764,7 +807,7 @@ async def get_devices():
 @router.post("/devices")
 async def create_device(
     device: dict[str, Any],
-    user: dict = Depends(require_auth),
+    user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
 ):
     """创建设备"""
     try:
@@ -790,7 +833,7 @@ async def create_device(
 async def update_device(
     device_id: str,
     update: dict[str, Any],
-    user: dict = Depends(require_auth),
+    user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
 ):
     """更新设备"""
     try:
@@ -813,7 +856,7 @@ async def update_device(
 @router.delete("/devices/{device_id}")
 async def delete_device(
     device_id: str,
-    user: dict = Depends(require_auth),
+    user: dict = Depends(require_role(RoleEnum.admin)),
 ):
     """删除设备"""
     try:

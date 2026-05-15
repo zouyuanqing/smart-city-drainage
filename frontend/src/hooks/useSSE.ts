@@ -1,6 +1,12 @@
 /**
  * SSE (Server-Sent Events) 客户端 Hook
- * 自动连接、自动重连、事件分发。
+ * 自动连接、自动重连（指数退避）、事件分发。
+ *
+ * 重连策略:
+ *   - 初始延迟 1s，每次翻倍，最大 30s
+ *   - 连接成功后重置退避时间
+ *   - 浏览器 EventSource 自动携带 Last-Event-ID 请求头，
+ *     配合服务端事件重放实现断线续传
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
@@ -12,7 +18,6 @@ interface UseSSEOptions {
   onConnected?: () => void;
   onDisconnected?: () => void;
   onError?: (error: Event) => void;
-  reconnectInterval?: number;
 }
 
 interface UseSSEReturn {
@@ -21,6 +26,9 @@ interface UseSSEReturn {
   disconnect: () => void;
 }
 
+const INITIAL_RETRY_DELAY = 1000;
+const MAX_RETRY_DELAY = 30000;
+
 export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
   const {
     onSensorData,
@@ -28,21 +36,28 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
     onConnected,
     onDisconnected,
     onError,
-    reconnectInterval = 5000,
   } = options;
 
   const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isMountedRef = useRef(true);
+  const retryCountRef = useRef(0);
 
-  // 使用 ref 存储回调，避免回调引用变化导致 SSE 重连
   const callbacksRef = useRef({ onSensorData, onAlert, onConnected, onDisconnected, onError });
   callbacksRef.current = { onSensorData, onAlert, onConnected, onDisconnected, onError };
+
+  const getReconnectDelay = useCallback(() => {
+    return Math.min(INITIAL_RETRY_DELAY * Math.pow(2, retryCountRef.current), MAX_RETRY_DELAY);
+  }, []);
 
   const connect = useCallback(() => {
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
+    }
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
     }
 
     const es = new EventSource('/api/sse/events');
@@ -50,6 +65,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
     es.onopen = () => {
       if (!isMountedRef.current) return;
+      retryCountRef.current = 0;
       setIsConnected(true);
       callbacksRef.current.onConnected?.();
     };
@@ -84,24 +100,28 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
     es.onerror = () => {
       if (!isMountedRef.current) return;
       setIsConnected(false);
+      callbacksRef.current.onDisconnected?.();
       callbacksRef.current.onError?.(new Event('error'));
       es.close();
 
-      // 自动重连
       if (isMountedRef.current) {
-        reconnectTimerRef.current = setTimeout(connect, reconnectInterval);
+        const delay = getReconnectDelay();
+        retryCountRef.current += 1;
+        reconnectTimerRef.current = setTimeout(connect, delay);
       }
     };
-  }, [reconnectInterval]);
+  }, [getReconnectDelay]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
     }
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
+    retryCountRef.current = 0;
     setIsConnected(false);
     callbacksRef.current.onDisconnected?.();
   }, []);
@@ -114,7 +134,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
       isMountedRef.current = false;
       disconnect();
     };
-  }, []); // 只在挂载/卸载时连接/断开
+  }, []);
 
   return { isConnected, reconnect: connect, disconnect };
 }

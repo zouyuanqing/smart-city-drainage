@@ -7,6 +7,7 @@ SQLAlchemy ORM 数据库模型
 
 from __future__ import annotations
 
+import enum
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -24,6 +25,12 @@ class Base(DeclarativeBase):
     pass
 
 
+class RoleEnum(str, enum.Enum):
+    admin = "admin"
+    operator = "operator"
+    viewer = "viewer"
+
+
 # ============================================================
 # 用户表
 # ============================================================
@@ -38,7 +45,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[Optional[str]] = mapped_column(String(128))
-    role: Mapped[str] = mapped_column(String(32), default="operator")
+    role: Mapped[str] = mapped_column(Enum(RoleEnum), default=RoleEnum.operator)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_login: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(

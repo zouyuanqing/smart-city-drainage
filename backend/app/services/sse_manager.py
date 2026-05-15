@@ -32,26 +32,17 @@ class SSEClient:
 
 
 class SSEManager:
-    """
-    SSE 连接管理器 (单例模式)
-
-    支持多频道:
-      - sensors: 传感器实时数据
-      - alerts: 告警推送
-      - system: 系统状态
-
-    使用示例:
-        manager = SSEManager.get_instance()
-        await manager.broadcast("sensors", {"device_id": "...", "water_level_mm": 150})
-    """
 
     _instance: Optional["SSEManager"] = None
+    _MAX_HISTORY = 1000
 
     def __init__(self) -> None:
         if not hasattr(self, "_clients"):
             self._clients: dict[str, SSEClient] = {}
             self._lock = asyncio.Lock()
             self._total_events_sent: int = 0
+            self._event_counter: int = 0
+            self._event_history: list[tuple[int, str, str]] = []
 
     @classmethod
     def get_instance(cls) -> "SSEManager":
@@ -60,9 +51,12 @@ class SSEManager:
             cls._instance = cls()
         return cls._instance
 
-    async def connect(self) -> tuple[str, asyncio.Queue]:
+    async def connect(self, last_event_id: str | None = None) -> tuple[str, asyncio.Queue]:
         """
         注册新的 SSE 客户端
+
+        Args:
+            last_event_id: 客户端上次收到的事件 ID，用于断线重连时重放
 
         Returns:
             (client_id, event_queue)
@@ -92,26 +86,24 @@ class SSEManager:
             )
 
     async def broadcast(self, event_type: str, data: dict[str, Any]) -> None:
-        """
-        向所有客户端广播事件
-
-        Args:
-            event_type: 事件类型 (sensors, alerts, system)
-            data: 事件数据
-        """
         event_data = json.dumps(data, ensure_ascii=False, default=str)
 
         async with self._lock:
+            self._event_counter += 1
+            event_id = self._event_counter
+            self._event_history.append((event_id, event_type, event_data))
+            if len(self._event_history) > self._MAX_HISTORY:
+                self._event_history = self._event_history[-self._MAX_HISTORY:]
             clients = list(self._clients.items())
 
         dead_clients: list[str] = []
 
         for client_id, client in clients:
             try:
-                # 非阻塞放入队列
                 client.queue.put_nowait({
                     "event": event_type,
                     "data": event_data,
+                    "id": str(event_id),
                 })
                 client.event_count += 1
                 self._total_events_sent += 1
@@ -137,30 +129,47 @@ class SSEManager:
             "timestamp": datetime.now(timezone.utc).isoformat(),
         })
 
-    def event_generator(self, client_id: str, queue: asyncio.Queue) -> AsyncGenerator:
-        """
-        SSE 事件生成器 (用于 FastAPI StreamingResponse)
-
-        Args:
-            client_id: 客户端 ID
-            queue: 事件队列
-
-        Yields:
-            SSE 格式的字符串
-        """
+    def event_generator(
+        self,
+        client_id: str,
+        queue: asyncio.Queue,
+        last_event_id: str | None = None,
+    ) -> AsyncGenerator:
         async def generate():
             try:
-                # 发送连接成功事件
-                yield f"event: connected\ndata: {json.dumps({'client_id': client_id, 'status': 'connected'})}\n\n"
+                yield {"retry": 3000}
+
+                yield {
+                    "event": "connected",
+                    "data": json.dumps({"client_id": client_id, "status": "connected"}),
+                }
+
+                if last_event_id is not None:
+                    try:
+                        last_id = int(last_event_id)
+                    except (ValueError, TypeError):
+                        last_id = 0
+                    history_snapshot = list(self._event_history)
+                    for eid, etype, edata in history_snapshot:
+                        if eid > last_id:
+                            yield {
+                                "event": etype,
+                                "data": edata,
+                                "id": str(eid),
+                            }
 
                 while True:
                     try:
-                        # 等待事件 (带超时，用于心跳)
                         event = await asyncio.wait_for(queue.get(), timeout=15.0)
-                        yield f"event: {event['event']}\ndata: {event['data']}\n\n"
+                        result: dict[str, str] = {
+                            "event": event["event"],
+                            "data": event["data"],
+                        }
+                        if "id" in event:
+                            result["id"] = event["id"]
+                        yield result
                     except asyncio.TimeoutError:
-                        # 发送心跳保持连接
-                        yield f": heartbeat {int(time.time())}\n\n"
+                        yield {"comment": f"heartbeat {int(time.time())}"}
 
             except asyncio.CancelledError:
                 logger.debug("SSE 客户端 %s 被取消", client_id)

@@ -1,7 +1,7 @@
 """
 安全认证模块
 --------------
-JWT Token 生成与验证，密码哈希。
+JWT Token 生成与验证，密码哈希，RBAC 角色检查。
 """
 
 from __future__ import annotations
@@ -9,13 +9,16 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from app.core.config import settings
+from app.models.db_models import RoleEnum
 
-# 密码哈希上下文
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer(auto_error=False)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -61,6 +64,9 @@ def create_access_token(
     if extra_claims:
         to_encode.update(extra_claims)
 
+    if "role" not in to_encode:
+        to_encode["role"] = RoleEnum.operator.value
+
     return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
@@ -83,3 +89,44 @@ def decode_access_token(token: str) -> Optional[dict[str, Any]]:
         return payload
     except JWTError:
         return None
+
+
+async def get_current_user(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+) -> Optional[dict]:
+    """获取当前认证用户 (可选认证)"""
+    if credentials is None:
+        return None
+
+    payload = decode_access_token(credentials.credentials)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="无效的认证令牌")
+    return payload
+
+
+async def require_auth(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+) -> dict:
+    """强制认证依赖"""
+    payload = decode_access_token(credentials.credentials)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="认证令牌无效或已过期")
+    return payload
+
+
+def require_role(*allowed_roles: RoleEnum):
+    """RBAC 角色检查依赖注入工厂"""
+    async def role_checker(current_user: dict = Depends(get_current_user)) -> dict:
+        if current_user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="未认证",
+            )
+        user_role = current_user.get("role", "viewer")
+        if RoleEnum(user_role) not in allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Role '{user_role}' not permitted. Required: {[r.value for r in allowed_roles]}"
+            )
+        return current_user
+    return role_checker

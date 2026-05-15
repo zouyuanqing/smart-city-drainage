@@ -10,12 +10,15 @@ import {
   DatabaseOutlined,
   ThunderboltOutlined,
   ReloadOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { modelAPI, mockAPI, systemAPI } from '@/services/api';
 import type { MockConfig } from '@/services/api';
 import type { ModelStatus } from '@/types';
 
 export function SettingsPage() {
+  const { t, i18n } = useTranslation();
   const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
   const [targetVersion, setTargetVersion] = useState('');
   const [switching, setSwitching] = useState(false);
@@ -259,6 +262,21 @@ export function SettingsPage() {
                     <Descriptions.Item label="后端">FastAPI + YOLOv8</Descriptions.Item>
                     <Descriptions.Item label="AI 引擎">Ultralytics YOLO</Descriptions.Item>
                   </Descriptions>
+                </Card>
+
+                <Card title={t('settings.language')} size="small" className="bg-cyber-dark border-cyber-border">
+                  <div className="flex items-center gap-3">
+                    <GlobalOutlined className="text-text-secondary" />
+                    <Select
+                      value={i18n.language?.startsWith('zh') ? 'zh' : i18n.language?.startsWith('en') ? 'en' : 'zh'}
+                      onChange={(lng) => i18n.changeLanguage(lng)}
+                      className="w-40"
+                      options={[
+                        { value: 'zh', label: '中文' },
+                        { value: 'en', label: 'English' },
+                      ]}
+                    />
+                  </div>
                 </Card>
               </div>
             ),
