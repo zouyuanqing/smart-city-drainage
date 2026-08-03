@@ -3,10 +3,10 @@
  * Dark Cyberpunk / Sci-Fi Command Center 风格
  */
 
-import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Button, Tag } from 'antd';
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { Button, Tag } from 'antd'
 import {
   ThunderboltOutlined,
   AimOutlined,
@@ -14,9 +14,8 @@ import {
   SafetyCertificateOutlined,
   EyeOutlined,
   ArrowRightOutlined,
-  GithubOutlined,
-} from '@ant-design/icons';
-import { deviceAPI, alertAPI } from '@/services/api';
+} from '@ant-design/icons'
+import { deviceAPI, alertAPI } from '@/services/api'
 
 // 脉冲数据流粒子
 function DataParticles() {
@@ -44,7 +43,7 @@ function DataParticles() {
         />
       ))}
     </div>
-  );
+  )
 }
 
 // 旋转装饰环
@@ -67,13 +66,22 @@ function RotatingRings() {
         transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
       />
     </div>
-  );
+  )
 }
 
 // 统计卡片
-function StatCard({ label, value, unit, icon, color }: {
-  label: string; value: string; unit?: string;
-  icon: React.ReactNode; color: string;
+function StatCard({
+  label,
+  value,
+  unit,
+  icon,
+  color,
+}: {
+  label: string
+  value: string
+  unit?: string
+  icon: React.ReactNode
+  color: string
 }) {
   return (
     <motion.div
@@ -85,7 +93,9 @@ function StatCard({ label, value, unit, icon, color }: {
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-2">
           <span style={{ color }}>{icon}</span>
-          <span className="text-text-secondary text-xs font-mono uppercase tracking-wider">{label}</span>
+          <span className="text-text-secondary text-xs font-mono uppercase tracking-wider">
+            {label}
+          </span>
         </div>
         <div className="flex items-baseline gap-1">
           <span className="data-value" style={{ color, textShadow: `0 0 10px ${color}40` }}>
@@ -95,7 +105,7 @@ function StatCard({ label, value, unit, icon, color }: {
         </div>
       </div>
     </motion.div>
-  );
+  )
 }
 
 // 地图点位示意
@@ -106,7 +116,7 @@ function MapPreview() {
     { x: 68, y: 55, name: '陆家嘴', pulse: 'green' },
     { x: 35, y: 62, name: '徐家汇', pulse: 'red' },
     { x: 75, y: 28, name: '五角场', pulse: 'green' },
-  ];
+  ]
 
   return (
     <div className="relative w-full h-full cyber-grid rounded-lg overflow-hidden border border-cyber-border">
@@ -134,8 +144,10 @@ function MapPreview() {
           }}
           whileHover={{ scale: 1.5 }}
         >
-          <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap
-                          text-[10px] font-mono text-neon-blue opacity-0 hover:opacity-100 transition-opacity">
+          <div
+            className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap
+                          text-[10px] font-mono text-neon-blue opacity-0 hover:opacity-100 transition-opacity"
+          >
             {p.name}
           </div>
         </motion.div>
@@ -145,38 +157,45 @@ function MapPreview() {
       <motion.div
         className="absolute border border-neon-blue/30 rounded-full"
         style={{
-          width: 80, height: 80,
-          left: '50%', top: '50%',
-          marginLeft: -40, marginTop: -40,
+          width: 80,
+          height: 80,
+          left: '50%',
+          top: '50%',
+          marginLeft: -40,
+          marginTop: -40,
         }}
         animate={{ scale: [1, 2, 1], opacity: [0.5, 0, 0.5] }}
         transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
       />
     </div>
-  );
+  )
 }
 
 export function LandingPage() {
-  const navigate = useNavigate();
-  const [devices, setDevices] = useState<any[]>([]);
-  const [stats, setStats] = useState({ devices: 8, online: 6, alerts: 3, coverage: '98.5' });
+  const navigate = useNavigate()
+  const [stats, setStats] = useState({ devices: 8, online: 6, alerts: 3, coverage: '98.5' })
 
   useEffect(() => {
     Promise.all([
       deviceAPI.getList().catch(() => ({ data: { devices: [] } })),
       alertAPI.getList(100).catch(() => ({ data: { alerts: [] } })),
     ]).then(([devRes, alertRes]) => {
-      const devices = devRes.data.devices || [];
-      const alerts = alertRes.data.alerts || [];
-      setDevices(devices);
+      const devices = devRes.data.devices || []
+      const alerts = alertRes.data.alerts || []
       setStats({
         devices: devices.length,
         online: devices.filter((d: any) => d.status === 'online').length,
         alerts: alerts.filter((a: any) => !a.is_acknowledged).length,
-        coverage: devices.length > 0 ? ((devices.filter((d: any) => d.status === 'online').length / devices.length) * 100).toFixed(1) : '0.0',
-      });
-    });
-  }, []);
+        coverage:
+          devices.length > 0
+            ? (
+                (devices.filter((d: any) => d.status === 'online').length / devices.length) *
+                100
+              ).toFixed(1)
+            : '0.0',
+      })
+    })
+  }, [])
 
   return (
     <div className="relative min-h-screen bg-cyber-black overflow-hidden">
@@ -186,8 +205,10 @@ export function LandingPage() {
       <RotatingRings />
 
       {/* 顶部导航 */}
-      <header className="relative z-20 flex items-center justify-between px-8 py-4
-                         border-b border-cyber-border bg-cyber-dark/60 backdrop-blur-md">
+      <header
+        className="relative z-20 flex items-center justify-between px-8 py-4
+                         border-b border-cyber-border bg-cyber-dark/60 backdrop-blur-md"
+      >
         <div className="flex items-center gap-3">
           <motion.div
             className="w-8 h-8 rounded-full bg-gradient-to-br from-neon-blue to-neon-cyan"
@@ -205,18 +226,27 @@ export function LandingPage() {
         </div>
 
         <nav className="flex items-center gap-6">
-          <Button type="text" className="text-text-secondary hover:text-neon-blue font-mono text-xs"
-                  onClick={() => navigate('/login')}>
+          <Button
+            type="text"
+            className="text-text-secondary hover:text-neon-blue font-mono text-xs"
+            onClick={() => navigate('/login')}
+          >
             登录
           </Button>
-          <Button type="text" className="text-text-secondary hover:text-neon-blue font-mono text-xs"
-                  icon={<DashboardOutlined />}
-                  onClick={() => navigate('/dashboard')}>
+          <Button
+            type="text"
+            className="text-text-secondary hover:text-neon-blue font-mono text-xs"
+            icon={<DashboardOutlined />}
+            onClick={() => navigate('/dashboard')}
+          >
             驾驶舱
           </Button>
-          <Button type="primary" icon={<ArrowRightOutlined />}
-                  onClick={() => navigate('/dashboard')}
-                  className="font-mono text-xs tracking-wider">
+          <Button
+            type="primary"
+            icon={<ArrowRightOutlined />}
+            onClick={() => navigate('/dashboard')}
+            className="font-mono text-xs tracking-wider"
+          >
             进入系统
           </Button>
         </nav>
@@ -247,21 +277,38 @@ export function LandingPage() {
               </p>
 
               <div className="flex gap-4 mb-8">
-                <Button type="primary" size="large" icon={<DashboardOutlined />}
-                        onClick={() => navigate('/dashboard')}
-                        className="h-12 px-8 font-mono text-sm tracking-wider">
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<DashboardOutlined />}
+                  onClick={() => navigate('/dashboard')}
+                  className="h-12 px-8 font-mono text-sm tracking-wider"
+                >
                   进入驾驶舱
                 </Button>
-                <Button size="large" ghost icon={<EyeOutlined />}
-                        className="h-12 font-mono text-sm tracking-wider border-neon-blue text-neon-blue">
+                <Button
+                  size="large"
+                  ghost
+                  icon={<EyeOutlined />}
+                  className="h-12 font-mono text-sm tracking-wider border-neon-blue text-neon-blue"
+                >
                   查看演示
                 </Button>
               </div>
 
               {/* 特性标签 */}
               <div className="flex flex-wrap gap-3">
-                {['YOLOv8 AI 视觉', 'RTSP/HLS 多源视频', '3D 数字孪生', '零停机模型热切换', '毫秒级实时推送'].map((t) => (
-                  <Tag key={t} className="bg-cyber-dark border-cyber-border text-text-secondary font-mono text-[10px] py-1 px-3">
+                {[
+                  'YOLOv8 AI 视觉',
+                  'RTSP/HLS 多源视频',
+                  '3D 数字孪生',
+                  '零停机模型热切换',
+                  '毫秒级实时推送',
+                ].map((t) => (
+                  <Tag
+                    key={t}
+                    className="bg-cyber-dark border-cyber-border text-text-secondary font-mono text-[10px] py-1 px-3"
+                  >
                     {t}
                   </Tag>
                 ))}
@@ -284,10 +331,34 @@ export function LandingPage() {
         <section className="px-8 pb-16">
           <div className="max-w-7xl mx-auto">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatCard label="监控设备" value={String(stats.devices)} unit="台" icon={<AimOutlined />} color="#00D4FF" />
-              <StatCard label="在线率" value={stats.coverage} unit="%" icon={<ThunderboltOutlined />} color="#00FF88" />
-              <StatCard label="今日告警" value={String(stats.alerts)} unit="条" icon={<SafetyCertificateOutlined />} color="#FF3366" />
-              <StatCard label="AI 模型" value="v1" unit="active" icon={<DashboardOutlined />} color="#A855F7" />
+              <StatCard
+                label="监控设备"
+                value={String(stats.devices)}
+                unit="台"
+                icon={<AimOutlined />}
+                color="#00D4FF"
+              />
+              <StatCard
+                label="在线率"
+                value={stats.coverage}
+                unit="%"
+                icon={<ThunderboltOutlined />}
+                color="#00FF88"
+              />
+              <StatCard
+                label="今日告警"
+                value={String(stats.alerts)}
+                unit="条"
+                icon={<SafetyCertificateOutlined />}
+                color="#FF3366"
+              />
+              <StatCard
+                label="AI 模型"
+                value="v1"
+                unit="active"
+                icon={<DashboardOutlined />}
+                color="#A855F7"
+              />
             </div>
           </div>
         </section>
@@ -303,5 +374,5 @@ export function LandingPage() {
         </div>
       </main>
     </div>
-  );
+  )
 }

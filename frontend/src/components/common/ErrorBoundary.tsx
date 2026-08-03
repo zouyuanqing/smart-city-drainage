@@ -1,33 +1,33 @@
-import { Component, type ReactNode } from 'react';
-import { Button, Result } from 'antd';
+import { Component, type ReactNode } from 'react'
+import { Button, Result } from 'antd'
 
 interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
+  children: ReactNode
+  fallback?: ReactNode
 }
 
 interface State {
-  hasError: boolean;
-  error?: Error;
+  hasError: boolean
+  error?: Error
 }
 
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
+    super(props)
+    this.state = { hasError: false }
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error }
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: undefined });
-  };
+    this.setState({ hasError: false, error: undefined })
+  }
 
   render() {
     if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback;
+      if (this.props.fallback) return this.props.fallback
 
       return (
         <div className="flex items-center justify-center min-h-[400px]">
@@ -42,9 +42,9 @@ export class ErrorBoundary extends Component<Props, State> {
             }
           />
         </div>
-      );
+      )
     }
 
-    return this.props.children;
+    return this.props.children
   }
 }

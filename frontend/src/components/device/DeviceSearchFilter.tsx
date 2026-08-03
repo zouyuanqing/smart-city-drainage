@@ -3,44 +3,50 @@
  * 支持的过滤: 文字搜索, 状态筛选, 类型筛选
  */
 
-import { useState, useEffect } from 'react';
-import { Input, Select } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
-import type { Device } from '@/types';
+import { useState, useEffect } from 'react'
+import { Input, Select } from 'antd'
+import { SearchOutlined } from '@ant-design/icons'
+import type { Device } from '@/types'
 
 interface DeviceSearchFilterProps {
-  devices: Device[];
-  onFilterChange: (filtered: Device[]) => void;
-  deviceType?: string;
-  onDeviceTypeChange?: (value: string) => void;
+  devices: Device[]
+  onFilterChange: (filtered: Device[]) => void
+  deviceType?: string
+  onDeviceTypeChange?: (value: string) => void
 }
 
-export function DeviceSearchFilter({ devices, onFilterChange, deviceType, onDeviceTypeChange }: DeviceSearchFilterProps) {
-  const [query, setQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+export function DeviceSearchFilter({
+  devices,
+  onFilterChange,
+  deviceType,
+  onDeviceTypeChange,
+}: DeviceSearchFilterProps) {
+  const [query, setQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
   useEffect(() => {
-    let filtered = devices;
+    let filtered = devices
 
     if (query.trim()) {
-      const q = query.toLowerCase().trim();
-      filtered = filtered.filter(d =>
-        d.name.toLowerCase().includes(q) ||
-        d.code.toLowerCase().includes(q) ||
-        (d.district || '').toLowerCase().includes(q)
-      );
+      const q = query.toLowerCase().trim()
+      filtered = filtered.filter(
+        (d) =>
+          d.name.toLowerCase().includes(q) ||
+          d.code.toLowerCase().includes(q) ||
+          (d.district || '').toLowerCase().includes(q)
+      )
     }
 
     if (statusFilter !== 'all') {
-      filtered = filtered.filter(d => d.status === statusFilter);
+      filtered = filtered.filter((d) => d.status === statusFilter)
     }
 
     if (deviceType) {
-      filtered = filtered.filter(d => d.device_type === deviceType);
+      filtered = filtered.filter((d) => d.device_type === deviceType)
     }
 
-    onFilterChange(filtered);
-  }, [devices, query, statusFilter, deviceType, onFilterChange]);
+    onFilterChange(filtered)
+  }, [devices, query, statusFilter, deviceType, onFilterChange])
 
   return (
     <div className="flex items-center gap-2 p-2">
@@ -81,5 +87,5 @@ export function DeviceSearchFilter({ devices, onFilterChange, deviceType, onDevi
         ]}
       />
     </div>
-  );
+  )
 }

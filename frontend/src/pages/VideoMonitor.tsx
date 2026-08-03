@@ -1,35 +1,30 @@
-import { useState, useEffect } from 'react';
-import { Button, Tag, Tabs, Tooltip, message, Modal, Input, Empty } from 'antd';
-import {
-  PlayCircleOutlined,
-  StopOutlined,
-  FullscreenOutlined,
-  ReloadOutlined,
-} from '@ant-design/icons';
-import { VideoPlayer } from '@components/video/VideoPlayer';
-import { Loading } from '@components/common';
-import { streamAPI } from '@/services/api';
+import { useState, useEffect } from 'react'
+import { Button, Tag, Tabs, Tooltip, message, Modal, Input, Empty } from 'antd'
+import { PlayCircleOutlined, StopOutlined, ReloadOutlined } from '@ant-design/icons'
+import { VideoPlayer } from '@components/video/VideoPlayer'
+import { Loading } from '@components/common'
+import { streamAPI } from '@/services/api'
 
 interface ActiveStream {
-  id: string;
-  name: string;
-  hlsUrl: string;
-  status: string;
-  [key: string]: any;
+  id: string
+  name: string
+  hlsUrl: string
+  status: string
+  [key: string]: any
 }
 
 export function VideoMonitor() {
-  const [streams, setStreams] = useState<ActiveStream[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('hls');
-  const [startModalVisible, setStartModalVisible] = useState(false);
-  const [startCameraId, setStartCameraId] = useState('');
-  const [startRtspUrl, setStartRtspUrl] = useState('');
-  const [starting, setStarting] = useState(false);
+  const [streams, setStreams] = useState<ActiveStream[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState('hls')
+  const [startModalVisible, setStartModalVisible] = useState(false)
+  const [startCameraId, setStartCameraId] = useState('')
+  const [startRtspUrl, setStartRtspUrl] = useState('')
+  const [starting, setStarting] = useState(false)
 
   const fetchStatus = async () => {
     try {
-      const res = await streamAPI.getStatus();
+      const res = await streamAPI.getStatus()
       const activeStreams = Object.entries(res.data.streams || {})
         .filter(([_, info]: [string, any]) => info.is_active)
         .map(([id, info]: [string, any]) => ({
@@ -38,49 +33,54 @@ export function VideoMonitor() {
           hlsUrl: `/hls/${id}/index.m3u8`,
           status: info.is_healthy ? 'healthy' : 'unhealthy',
           ...info,
-        }));
-      setStreams(activeStreams);
+        }))
+      setStreams(activeStreams)
     } catch {
-      message.error('获取视频流状态失败');
+      message.error('获取视频流状态失败')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    fetchStatus();
-    const timer = setInterval(fetchStatus, 10000);
-    return () => clearInterval(timer);
-  }, []);
+    fetchStatus()
+    const timer = setInterval(fetchStatus, 10000)
+    return () => clearInterval(timer)
+  }, [])
 
   const handleStartStream = async () => {
     if (!startCameraId || !startRtspUrl) {
-      message.warning('请填写完整信息');
-      return;
+      message.warning('请填写完整信息')
+      return
     }
-    setStarting(true);
+    setStarting(true)
     try {
-      await streamAPI.start({ camera_id: startCameraId, rtsp_url: startRtspUrl });
-      message.success('视频流启动成功');
-      setStartModalVisible(false);
-      setStartCameraId('');
-      setStartRtspUrl('');
-      fetchStatus();
+      await streamAPI.start({ camera_id: startCameraId, rtsp_url: startRtspUrl })
+      message.success('视频流启动成功')
+      setStartModalVisible(false)
+      setStartCameraId('')
+      setStartRtspUrl('')
+      fetchStatus()
     } catch {
-      message.error('启动视频流失败');
+      message.error('启动视频流失败')
     } finally {
-      setStarting(false);
+      setStarting(false)
     }
-  };
+  }
 
-  if (loading) return <Loading tip="加载视频流..." />;
+  if (loading) return <Loading tip="加载视频流..." />
 
   return (
     <div className="h-full flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="panel-title">📹 视频监控矩阵</div>
         <div className="flex gap-2">
-          <Button size="small" type="primary" icon={<PlayCircleOutlined />} onClick={() => setStartModalVisible(true)}>
+          <Button
+            size="small"
+            type="primary"
+            icon={<PlayCircleOutlined />}
+            onClick={() => setStartModalVisible(true)}
+          >
             启动视频流
           </Button>
           <Tooltip title="刷新">
@@ -103,7 +103,10 @@ export function VideoMonitor() {
                     <div key={s.id} className="video-container aspect-video">
                       <VideoPlayer streamType="hls" streamUrl={s.hlsUrl} muted />
                       <div className="absolute top-2 left-2 z-10">
-                        <Tag color={s.status === 'healthy' ? 'green' : 'red'} className="font-mono text-[10px]">
+                        <Tag
+                          color={s.status === 'healthy' ? 'green' : 'red'}
+                          className="font-mono text-[10px]"
+                        >
                           {s.name}
                         </Tag>
                       </div>
@@ -171,5 +174,5 @@ export function VideoMonitor() {
         </div>
       </Modal>
     </div>
-  );
+  )
 }

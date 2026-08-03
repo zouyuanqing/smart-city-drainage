@@ -4,14 +4,14 @@
  * Licensed under the Apache License, Version 2.0
  */
 
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import { ConfigProvider, theme } from 'antd';
-import zhCN from 'antd/locale/zh_CN';
-import App from './App';
-import './i18n';
-import './styles/globals.css';
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import { BrowserRouter } from 'react-router-dom'
+import { ConfigProvider, theme } from 'antd'
+import zhCN from 'antd/locale/zh_CN'
+import App from './App'
+import './i18n'
+import './styles/globals.css'
 
 // Ant Design 暗黑主题配置
 const darkTheme = {
@@ -41,7 +41,7 @@ const darkTheme = {
       headerBg: '#243044',
     },
   },
-};
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
@@ -50,5 +50,5 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
         <App />
       </ConfigProvider>
     </BrowserRouter>
-  </React.StrictMode>,
-);
+  </React.StrictMode>
+)

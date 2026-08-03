@@ -2,9 +2,9 @@
  * 驾驶舱整体布局 — 顶部状态栏 + 侧边栏 + 主内容区
  */
 
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Button, Badge, Tag, Tooltip } from 'antd';
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Layout, Button, Badge, Tag, Tooltip } from 'antd'
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -17,68 +17,112 @@ import {
   ApiOutlined,
   ExperimentOutlined,
   LogoutOutlined,
-} from '@ant-design/icons';
-import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
-import { useAppStore } from '@/store/useAppStore';
-import { hasRole, getUserRole } from '@/store/useAppStore';
-import { modelAPI } from '@/services/api';
-import type { ModelStatus } from '@/types';
+} from '@ant-design/icons'
+import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import { useAppStore } from '@/store/useAppStore'
+import { hasRole } from '@/store/useAppStore'
+import { modelAPI } from '@/services/api'
+import type { ModelStatus } from '@/types'
 
-const { Header, Sider, Content } = Layout;
+const { Header, Sider, Content } = Layout
 
 interface AppLayoutProps {
-  children: React.ReactNode;
+  children: React.ReactNode
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { t } = useTranslation();
-  const { sidebarCollapsed, toggleSidebar, alerts } = useAppStore();
-  const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null);
-  const [currentTime, setCurrentTime] = useState('');
-  const unackCount = alerts.filter(a => !a.is_acknowledged).length;
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { t } = useTranslation()
+  const { sidebarCollapsed, toggleSidebar, alerts } = useAppStore()
+  const [modelStatus, setModelStatus] = useState<ModelStatus | null>(null)
+  const [currentTime, setCurrentTime] = useState('')
+  const unackCount = alerts.filter((a) => !a.is_acknowledged).length
 
   useEffect(() => {
-    modelAPI.getStatus().then(res => setModelStatus(res.data)).catch(() => {});
+    modelAPI
+      .getStatus()
+      .then((res) => setModelStatus(res.data))
+      .catch(() => {})
     const timer = setInterval(() => {
-      setCurrentTime(new Date().toLocaleString('zh-CN', {
-        year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit',
-      }));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
+      setCurrentTime(
+        new Date().toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        })
+      )
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   const handleLogout = () => {
-    localStorage.removeItem('scn_access_token');
-    localStorage.removeItem('scn_user');
-    localStorage.removeItem('scn_user_role');
-    navigate('/login', { replace: true });
-  };
+    localStorage.removeItem('scn_access_token')
+    localStorage.removeItem('scn_user')
+    localStorage.removeItem('scn_user_role')
+    navigate('/login', { replace: true })
+  }
 
-  const currentPath = location.pathname;
-  const userRole = getUserRole();
+  const currentPath = location.pathname
 
   const allMenuItems = [
-    { key: 'dashboard', path: '/dashboard', icon: <DashboardOutlined />, label: t('nav.dashboard'), requiredRole: 'viewer' as const },
-    { key: 'map', path: '/map', icon: <EnvironmentOutlined />, label: t('nav.map'), requiredRole: 'viewer' as const },
-    { key: 'video', path: '/video', icon: <VideoCameraOutlined />, label: t('nav.video'), requiredRole: 'operator' as const },
-    { key: 'alerts', path: '/alerts', icon: <AlertOutlined />, label: `${t('nav.alerts')} ${unackCount > 0 ? `(${unackCount})` : ''}`, requiredRole: 'operator' as const },
-    { key: 'settings', path: '/settings', icon: <SettingOutlined />, label: t('nav.settings'), requiredRole: 'admin' as const },
-  ];
+    {
+      key: 'dashboard',
+      path: '/dashboard',
+      icon: <DashboardOutlined />,
+      label: t('nav.dashboard'),
+      requiredRole: 'viewer' as const,
+    },
+    {
+      key: 'map',
+      path: '/map',
+      icon: <EnvironmentOutlined />,
+      label: t('nav.map'),
+      requiredRole: 'viewer' as const,
+    },
+    {
+      key: 'video',
+      path: '/video',
+      icon: <VideoCameraOutlined />,
+      label: t('nav.video'),
+      requiredRole: 'operator' as const,
+    },
+    {
+      key: 'alerts',
+      path: '/alerts',
+      icon: <AlertOutlined />,
+      label: `${t('nav.alerts')} ${unackCount > 0 ? `(${unackCount})` : ''}`,
+      requiredRole: 'operator' as const,
+    },
+    {
+      key: 'settings',
+      path: '/settings',
+      icon: <SettingOutlined />,
+      label: t('nav.settings'),
+      requiredRole: 'admin' as const,
+    },
+  ]
 
-  const menuItems = allMenuItems.filter(item => hasRole(item.requiredRole));
+  const menuItems = allMenuItems.filter((item) => hasRole(item.requiredRole))
 
   return (
     <Layout className="min-h-screen bg-cyber-black">
       {/* 顶部状态栏 */}
-      <Header className="flex items-center justify-between px-4 h-12 bg-cyber-dark border-b border-cyber-border"
-              style={{ padding: '0 16px', lineHeight: '48px' }}>
+      <Header
+        className="flex items-center justify-between px-4 h-12 bg-cyber-dark border-b border-cyber-border"
+        style={{ padding: '0 16px', lineHeight: '48px' }}
+      >
         <div className="flex items-center gap-3">
-          <Button type="text" icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-                  onClick={toggleSidebar} className="text-neon-blue" />
+          <Button
+            type="text"
+            icon={sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={toggleSidebar}
+            className="text-neon-blue"
+          />
 
           <div className="h-6 w-px bg-cyber-border mx-2" />
 
@@ -90,7 +134,11 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="flex items-center gap-4">
           {/* 系统状态指示器 */}
           <Tooltip title="SSE 连接状态">
-            <Badge status="processing" color="cyan" text={<span className="text-text-secondary text-xs font-mono">LIVE</span>} />
+            <Badge
+              status="processing"
+              color="cyan"
+              text={<span className="text-text-secondary text-xs font-mono">LIVE</span>}
+            />
           </Tooltip>
 
           <Tooltip title={`AI 模型: ${modelStatus?.active_version || '--'}`}>
@@ -123,7 +171,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         >
           <div className="flex flex-col h-full py-3">
             {menuItems.map((item) => {
-              const isActive = currentPath === item.path;
+              const isActive = currentPath === item.path
               return (
                 <motion.div
                   key={item.key}
@@ -133,16 +181,20 @@ export function AppLayout({ children }: AppLayoutProps) {
                   whileHover={{ x: 4 }}
                   onClick={() => navigate(item.path)}
                 >
-                  <span className={`text-lg ${item.key === 'alerts' && unackCount > 0 ? 'text-neon-red animate-pulse-glow' : isActive ? 'text-neon-blue' : 'text-text-secondary group-hover:text-neon-blue'}`}>
+                  <span
+                    className={`text-lg ${item.key === 'alerts' && unackCount > 0 ? 'text-neon-red animate-pulse-glow' : isActive ? 'text-neon-blue' : 'text-text-secondary group-hover:text-neon-blue'}`}
+                  >
                     {item.icon}
                   </span>
                   {!sidebarCollapsed && (
-                    <span className={`text-sm font-mono tracking-wide ${isActive ? 'text-neon-blue' : 'text-text-secondary group-hover:text-neon-blue'}`}>
+                    <span
+                      className={`text-sm font-mono tracking-wide ${isActive ? 'text-neon-blue' : 'text-text-secondary group-hover:text-neon-blue'}`}
+                    >
                       {item.label}
                     </span>
                   )}
                 </motion.div>
-              );
+              )
             })}
 
             {/* 退出登录 */}
@@ -165,7 +217,10 @@ export function AppLayout({ children }: AppLayoutProps) {
         </Sider>
 
         {/* 主内容区 */}
-        <Content className="p-2 lg:p-4 bg-cyber-black overflow-auto" style={{ minHeight: 'calc(100vh - 48px)' }}>
+        <Content
+          className="p-2 lg:p-4 bg-cyber-black overflow-auto"
+          style={{ minHeight: 'calc(100vh - 48px)' }}
+        >
           {children}
           <div className="text-center py-2 text-text-muted text-[10px] font-mono tracking-wider opacity-50">
             Powered by Smart City Neural Endpoints
@@ -173,5 +228,5 @@ export function AppLayout({ children }: AppLayoutProps) {
         </Content>
       </Layout>
     </Layout>
-  );
+  )
 }

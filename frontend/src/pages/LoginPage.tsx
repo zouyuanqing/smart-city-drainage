@@ -3,19 +3,19 @@
  * Cyberpunk 暗黑科幻风格登录界面
  */
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Button, Input, message, Tag } from 'antd';
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { Button, Input, message, Tag } from 'antd'
 import {
   UserOutlined,
   LockOutlined,
   ThunderboltOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
-} from '@ant-design/icons';
-import { useTranslation } from 'react-i18next';
-import { authAPI } from '@/services/api';
+} from '@ant-design/icons'
+import { useTranslation } from 'react-i18next'
+import { authAPI } from '@/services/api'
 
 // 背景粒子效果
 function LoginParticles() {
@@ -41,40 +41,40 @@ function LoginParticles() {
         />
       ))}
     </div>
-  );
+  )
 }
 
 export function LoginPage() {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      message.warning(t('login.usernameRequired'));
-      return;
+      message.warning(t('login.usernameRequired'))
+      return
     }
 
-    setLoading(true);
+    setLoading(true)
     try {
-      const res = await authAPI.login(username, password);
-      const { access_token, user, role } = res.data;
+      const res = await authAPI.login(username, password)
+      const { access_token, user, role } = res.data
 
-      localStorage.setItem('scn_access_token', access_token);
-      localStorage.setItem('scn_user', JSON.stringify(user));
-      localStorage.setItem('scn_user_role', role || user.role || 'viewer');
+      localStorage.setItem('scn_access_token', access_token)
+      localStorage.setItem('scn_user', JSON.stringify(user))
+      localStorage.setItem('scn_user_role', role || user.role || 'viewer')
 
-      message.success(`欢迎回来, ${user.full_name || user.username}`);
-      navigate('/dashboard', { replace: true });
+      message.success(`欢迎回来, ${user.full_name || user.username}`)
+      navigate('/dashboard', { replace: true })
     } catch (err: any) {
-      message.error(err.message || t('login.failed'));
+      message.error(err.message || t('login.failed'))
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="relative min-h-screen bg-cyber-black flex items-center justify-center overflow-hidden">
@@ -105,7 +105,13 @@ export function LoginPage() {
         <div className="text-center mb-8">
           <motion.div
             className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-neon-blue to-neon-cyan flex items-center justify-center"
-            animate={{ boxShadow: ['0 0 20px rgba(0,212,255,0.4)', '0 0 40px rgba(0,212,255,0.7)', '0 0 20px rgba(0,212,255,0.4)'] }}
+            animate={{
+              boxShadow: [
+                '0 0 20px rgba(0,212,255,0.4)',
+                '0 0 40px rgba(0,212,255,0.7)',
+                '0 0 20px rgba(0,212,255,0.4)',
+              ],
+            }}
             transition={{ duration: 2, repeat: Infinity }}
           >
             <ThunderboltOutlined style={{ fontSize: 28, color: '#fff' }} />
@@ -177,10 +183,9 @@ export function LoginPage() {
             </Button>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-cyber-border text-center">
-          </div>
+          <div className="mt-6 pt-4 border-t border-cyber-border text-center"></div>
         </div>
       </motion.div>
     </div>
-  );
+  )
 }
