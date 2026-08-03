@@ -12,6 +12,8 @@ Licensed under the Apache License, Version 2.0
 
 from __future__ import annotations
 
+# 强制 stdout 使用 UTF-8 编码 (Windows 兼容)
+import io
 import logging
 import sys
 import uuid
@@ -20,7 +22,9 @@ from logging.handlers import RotatingFileHandler
 from typing import AsyncGenerator
 
 from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_fastapi_instrumentator import Instrumentator
 from pythonjsonlogger import jsonlogger
@@ -37,32 +41,31 @@ from app.services.stream_service import stream_service
 # 日志配置
 # ============================================================
 
-# 强制 stdout 使用 UTF-8 编码 (Windows 兼容)
-import io
-if hasattr(sys.stdout, 'buffer'):
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+
+if hasattr(sys.stdout, "buffer"):
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 
 def setup_logging():
     log_level = getattr(logging, settings.LOG_LEVEL, logging.INFO)
 
     json_formatter = jsonlogger.JsonFormatter(
-        '%(timestamp)s %(level)s %(name)s %(message)s',
+        "%(timestamp)s %(level)s %(name)s %(message)s",
         rename_fields={
-            'timestamp': 'timestamp',
-            'level': 'level',
-            'name': 'logger',
-        }
+            "timestamp": "timestamp",
+            "level": "level",
+            "name": "logger",
+        },
     )
 
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(json_formatter)
 
     file_handler = RotatingFileHandler(
-        'logs/app.log',
+        "logs/app.log",
         maxBytes=10 * 1024 * 1024,
         backupCount=10,
-        encoding='utf-8',
+        encoding="utf-8",
     )
     file_handler.setFormatter(json_formatter)
 
@@ -71,7 +74,7 @@ def setup_logging():
     root_logger.addHandler(console_handler)
     root_logger.addHandler(file_handler)
 
-    for lib in ['httpx', 'httpcore', 'urllib3', 'ultralytics', 'uvicorn.access']:
+    for lib in ["httpx", "httpcore", "urllib3", "ultralytics", "uvicorn.access"]:
         logging.getLogger(lib).setLevel(logging.WARNING)
 
 
@@ -80,20 +83,26 @@ logger = logging.getLogger(__name__)
 
 async def _handle_redis_alerts(message: dict):
     from app.services.sse_manager import sse_manager
+
     await sse_manager.broadcast("alerts", message)
+
 
 async def _handle_redis_sensor(message: dict):
     from app.services.sse_manager import sse_manager
+
     await sse_manager.broadcast("sensors", message)
+
 
 async def _handle_redis_model(message: dict):
     from app.services.sse_manager import sse_manager
+
     await sse_manager.broadcast("system", message)
 
 
 # ============================================================
 # 应用生命周期
 # ============================================================
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
@@ -120,7 +129,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 1. 初始化模型管理器
     try:
         manager = get_model_manager()
-        logger.info("✅ ModelManager 就绪 | 活跃模型: %s", manager.active_version or "无")
+        logger.info(
+            "✅ ModelManager 就绪 | 活跃模型: %s", manager.active_version or "无"
+        )
     except Exception as exc:
         logger.warning("⚠️  模型管理器初始化失败 (系统将以无模型模式运行): %s", exc)
 
@@ -148,6 +159,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     try:
         from app.services.influxdb_service import influxdb_service
+
         await influxdb_service.connect()
     except Exception as exc:
         logger.warning("⚠️  InfluxDB 连接失败: %s", exc)
@@ -176,6 +188,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     try:
         from app.services.influxdb_service import influxdb_service
+
         await influxdb_service.disconnect()
     except Exception:
         pass
@@ -184,6 +197,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     # 关闭数据库连接池
     from app.core.database import dispose_engine
+
     await dispose_engine()
 
     logger.info("✅ 服务已安全关闭")
@@ -228,10 +242,12 @@ app.add_middleware(
 # 请求计时中间件
 # ============================================================
 
+
 @app.middleware("http")
 async def add_process_time_header(request, call_next):
     """为每个请求添加处理时间头和版权标记头"""
     import time
+
     start_time = time.perf_counter()
     response = await call_next(request)
     process_time = time.perf_counter() - start_time
@@ -274,6 +290,7 @@ except Exception:
 # 根路径
 # ============================================================
 
+
 @app.get("/")
 async def root():
     """根路径 - 系统信息"""
@@ -297,9 +314,6 @@ async def health():
 # ============================================================
 # 全局异常处理
 # ============================================================
-
-from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
 
 
 @app.exception_handler(RequestValidationError)
@@ -333,6 +347,7 @@ async def global_exception_handler(request, exc):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",

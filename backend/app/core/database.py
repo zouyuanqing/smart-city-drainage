@@ -33,18 +33,25 @@ _engine: AsyncEngine | None = None
 
 def _build_safe_db_url() -> str:
     from urllib.parse import urlparse, urlunparse
+
     raw = settings.DATABASE_URL
     parsed = urlparse(raw)
-    if parsed.hostname and parsed.hostname != "localhost" and parsed.hostname != "127.0.0.1":
+    if (
+        parsed.hostname
+        and parsed.hostname != "localhost"
+        and parsed.hostname != "127.0.0.1"
+    ):
         return raw
-    safe_url = urlunparse((
-        parsed.scheme,
-        f"{quote_plus(parsed.username or '')}:{quote_plus(parsed.password or '')}@{parsed.hostname or 'localhost'}:{parsed.port or 5432}",
-        parsed.path,
-        parsed.params,
-        parsed.query,
-        parsed.fragment,
-    ))
+    safe_url = urlunparse(
+        (
+            parsed.scheme,
+            f"{quote_plus(parsed.username or '')}:{quote_plus(parsed.password or '')}@{parsed.hostname or 'localhost'}:{parsed.port or 5432}",
+            parsed.path,
+            parsed.params,
+            parsed.query,
+            parsed.fragment,
+        )
+    )
     return safe_url
 
 
@@ -92,6 +99,7 @@ def get_session_factory() -> async_sessionmaker[AsyncSession]:
 # FastAPI 依赖注入
 # ============================================================
 
+
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     FastAPI 依赖：为每个请求提供一个数据库会话。
@@ -121,9 +129,11 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
             await session.rollback()
             raise
 
+
 # ============================================================
 # 表创建（开发用）
 # ============================================================
+
 
 async def create_all_tables() -> None:
     """创建所有声明的数据库表（开发环境用，生产环境应使用 Alembic 迁移）"""
@@ -137,12 +147,14 @@ async def create_all_tables() -> None:
 # 连接测试
 # ============================================================
 
+
 async def check_database_connection() -> bool:
     """测试数据库连接"""
     try:
         engine = get_engine()
         async with engine.connect() as conn:
             from sqlalchemy import text
+
             result = await conn.execute(text("SELECT 1"))
             if result.fetchone():
                 logger.info("数据库连接正常")
@@ -156,9 +168,11 @@ async def check_database_connection() -> bool:
 # 工具
 # ============================================================
 
+
 def _mask_password(url: str) -> str:
     """隐藏 URL 密码"""
     import re
+
     return re.sub(r"://([^:]+):([^@]+)@", r"://\1:****@", url)
 
 

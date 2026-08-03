@@ -174,12 +174,14 @@ class InferenceWorker:
 
                 alert_cfg = ALERT_CLASSES.get(class_name)
                 if alert_cfg and confidence >= alert_cfg["threshold"]:
-                    alerts_triggered.append({
-                        "class_name": class_name,
-                        "confidence": confidence,
-                        "level": alert_cfg["level"],
-                        "bbox": det.get("bbox", []),
-                    })
+                    alerts_triggered.append(
+                        {
+                            "class_name": class_name,
+                            "confidence": confidence,
+                            "level": alert_cfg["level"],
+                            "bbox": det.get("bbox", []),
+                        }
+                    )
 
             if alerts_triggered:
                 await self._fire_alerts(alerts_triggered, frame)
@@ -213,6 +215,7 @@ class InferenceWorker:
             await self._sse.broadcast_alert(alert_data)
             try:
                 from app.core.redis_client import redis_client
+
                 if redis_client.is_connected:
                     await redis_client.publish_alert(alert_data)
             except Exception:

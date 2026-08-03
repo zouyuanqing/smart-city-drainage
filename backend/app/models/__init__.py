@@ -5,13 +5,13 @@ SQLAlchemy ORM 模型
 """
 
 from app.models.db_models import (
-    Base,
-    User,
-    Device,
-    CameraStream,
     Alert,
-    ModelVersion,
+    Base,
+    CameraStream,
+    Device,
     InferenceResult,
+    ModelVersion,
+    User,
 )
 
 __all__ = [

@@ -1,10 +1,11 @@
 import logging
 import smtplib
-from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from typing import Any
 
 import httpx
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,9 @@ class NotificationService:
             return
         self._initialized = True
 
-    async def send_email(self, to: str, subject: str, body: str, html: str | None = None) -> bool:
+    async def send_email(
+        self, to: str, subject: str, body: str, html: str | None = None
+    ) -> bool:
         if not settings.SMTP_ENABLED:
             logger.debug("SMTP disabled, skipping email to %s", to)
             return False
@@ -93,12 +96,15 @@ class NotificationService:
 
         if settings.WEBHOOK_ENABLED and settings.ALERT_WEBHOOK_URLS:
             for url in settings.ALERT_WEBHOOK_URLS:
-                await self.send_webhook(url, {
-                    "alert": alert,
-                    "level": level,
-                    "title": title,
-                    "timestamp": alert.get("timestamp"),
-                })
+                await self.send_webhook(
+                    url,
+                    {
+                        "alert": alert,
+                        "level": level,
+                        "title": title,
+                        "timestamp": alert.get("timestamp"),
+                    },
+                )
 
 
 notification_service = NotificationService()

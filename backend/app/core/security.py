@@ -67,7 +67,9 @@ def create_access_token(
     if "role" not in to_encode:
         to_encode["role"] = RoleEnum.operator.value
 
-    return jwt.encode(to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(
+        to_encode, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
 
 
 def decode_access_token(token: str) -> Optional[dict[str, Any]]:
@@ -116,6 +118,7 @@ async def require_auth(
 
 def require_role(*allowed_roles: RoleEnum):
     """RBAC 角色检查依赖注入工厂"""
+
     async def role_checker(current_user: dict = Depends(get_current_user)) -> dict:
         if current_user is None:
             raise HTTPException(
@@ -126,7 +129,8 @@ def require_role(*allowed_roles: RoleEnum):
         if RoleEnum(user_role) not in allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Role '{user_role}' not permitted. Required: {[r.value for r in allowed_roles]}"
+                detail=f"Role '{user_role}' not permitted. Required: {[r.value for r in allowed_roles]}",
             )
         return current_user
+
     return role_checker

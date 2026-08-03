@@ -13,8 +13,15 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from sqlalchemy import (
-    Boolean, Column, DateTime, Enum, Float, ForeignKey,
-    Integer, JSON, String, Text, UniqueConstraint,
+    JSON,
+    Boolean,
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -22,6 +29,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 class Base(DeclarativeBase):
     """SQLAlchemy 声明式基类"""
+
     pass
 
 
@@ -35,13 +43,16 @@ class RoleEnum(str, enum.Enum):
 # 用户表
 # ============================================================
 
+
 class User(Base):
     __tablename__ = "users"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    username: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, index=True
+    )
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     full_name: Mapped[Optional[str]] = mapped_column(String(128))
@@ -70,13 +81,16 @@ class User(Base):
 # 设备表
 # ============================================================
 
+
 class Device(Base):
     __tablename__ = "devices"
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    device_code: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    device_code: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, index=True
+    )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     device_type: Mapped[str] = mapped_column(String(64), default="manhole_cover")
     status: Mapped[str] = mapped_column(
@@ -118,6 +132,7 @@ class Device(Base):
 # ============================================================
 # 摄像头流表
 # ============================================================
+
 
 class CameraStream(Base):
     __tablename__ = "camera_streams"
@@ -162,6 +177,7 @@ class CameraStream(Base):
 # 告警表
 # ============================================================
 
+
 class Alert(Base):
     __tablename__ = "alerts"
 
@@ -173,9 +189,14 @@ class Alert(Base):
     )
     alert_type: Mapped[str] = mapped_column(
         Enum(
-            "water_accumulation", "manhole_anomaly", "intrusion",
-            "illegal_parking", "water_level_high", "flow_anomaly",
-            "device_offline", "system_error",
+            "water_accumulation",
+            "manhole_anomaly",
+            "intrusion",
+            "illegal_parking",
+            "water_level_high",
+            "flow_anomaly",
+            "device_offline",
+            "system_error",
             name="alert_type",
         ),
         nullable=False,
@@ -196,7 +217,9 @@ class Alert(Base):
     acknowledged_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
     is_resolved: Mapped[bool] = mapped_column(Boolean, default=False)
     resolved_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    alert_metadata: Mapped[dict[str, Any]] = mapped_column("metadata", JSON, default=dict)
+    alert_metadata: Mapped[dict[str, Any]] = mapped_column(
+        "metadata", JSON, default=dict
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True
     )
@@ -217,6 +240,7 @@ class Alert(Base):
 # 模型版本表
 # ============================================================
 
+
 class ModelVersion(Base):
     __tablename__ = "model_versions"
 
@@ -234,7 +258,9 @@ class ModelVersion(Base):
     )
     metrics: Mapped[dict[str, Any]] = mapped_column(JSON, default=dict)
     deployed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
-    deployed_by: Mapped[Optional[uuid.UUID]] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"))
+    deployed_by: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id")
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
@@ -246,6 +272,7 @@ class ModelVersion(Base):
 # ============================================================
 # 推理结果表
 # ============================================================
+
 
 class InferenceResult(Base):
     __tablename__ = "inference_results"

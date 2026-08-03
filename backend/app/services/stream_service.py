@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class StreamProcess:
     """视频流转码进程包装"""
+
     camera_id: str
     source_url: str
     hls_output_dir: Path
@@ -100,7 +101,9 @@ class StreamService:
                 camera_id=camera_id,
             )
             stream.is_healthy = True
-            logger.info("✅ [%s] RTSP→HLS 转码已启动: %s", camera_id, stream.hls_playlist_path)
+            logger.info(
+                "✅ [%s] RTSP→HLS 转码已启动: %s", camera_id, stream.hls_playlist_path
+            )
         except Exception as exc:
             stream.error_message = str(exc)
             stream.is_healthy = False
@@ -109,7 +112,6 @@ class StreamService:
         self._streams[camera_id] = stream
 
         try:
-            hls_url = f"http://localhost:8000/hls/{camera_id}/index.m3u8"
             self.worker_pool.add_worker(
                 camera_id=camera_id,
                 stream_url=rtsp_url,
@@ -222,9 +224,11 @@ class StreamService:
                 pass
 
         # 指数退避
-        delay = min(2 ** stream.restart_count, self.MAX_RESTART_DELAY)
+        delay = min(2**stream.restart_count, self.MAX_RESTART_DELAY)
         stream.restart_count += 1
-        logger.info("⏳ [%s] 等待 %ds 后重启 (第 %d 次)", camera_id, delay, stream.restart_count)
+        logger.info(
+            "⏳ [%s] 等待 %ds 后重启 (第 %d 次)", camera_id, delay, stream.restart_count
+        )
 
         await asyncio.sleep(delay)
 
@@ -266,19 +270,32 @@ class StreamService:
 
         cmd = [
             ffmpeg_path,
-            "-rtsp_transport", "tcp",          # TCP 传输更稳定
-            "-stimeout", "10000000",            # RTSP 超时 (微秒)
-            "-i", rtsp_url,
-            "-c:v", "libx264",                 # H.264 编码
-            "-preset", "veryfast",             # 编码速度优先
-            "-crf", "28",                      # 质量 (越小越好)
-            "-r", "25",                        # 帧率
-            "-g", "50",                        # GOP 大小 (2秒关键帧间隔)
-            "-hls_time", str(settings.HLS_SEGMENT_TIME),
-            "-hls_list_size", str(settings.HLS_LIST_SIZE),
-            "-hls_flags", "delete_segments+append_list",
-            "-hls_segment_filename", str(output_dir / "segment_%03d.ts"),
-            "-f", "hls",
+            "-rtsp_transport",
+            "tcp",  # TCP 传输更稳定
+            "-stimeout",
+            "10000000",  # RTSP 超时 (微秒)
+            "-i",
+            rtsp_url,
+            "-c:v",
+            "libx264",  # H.264 编码
+            "-preset",
+            "veryfast",  # 编码速度优先
+            "-crf",
+            "28",  # 质量 (越小越好)
+            "-r",
+            "25",  # 帧率
+            "-g",
+            "50",  # GOP 大小 (2秒关键帧间隔)
+            "-hls_time",
+            str(settings.HLS_SEGMENT_TIME),
+            "-hls_list_size",
+            str(settings.HLS_LIST_SIZE),
+            "-hls_flags",
+            "delete_segments+append_list",
+            "-hls_segment_filename",
+            str(output_dir / "segment_%03d.ts"),
+            "-f",
+            "hls",
             str(playlist_path),
         ]
 
@@ -299,10 +316,14 @@ class StreamService:
         if process.poll() is not None:
             stderr_output = ""
             try:
-                stderr_output = process.stderr.read().decode("utf-8", errors="replace")[-500:]
+                stderr_output = process.stderr.read().decode("utf-8", errors="replace")[
+                    -500:
+                ]
             except Exception:
                 pass
-            raise RuntimeError(f"FFmpeg 进程启动后立即退出 (code={process.returncode}): {stderr_output}")
+            raise RuntimeError(
+                f"FFmpeg 进程启动后立即退出 (code={process.returncode}): {stderr_output}"
+            )
 
         return process
 
@@ -321,15 +342,14 @@ class StreamService:
             "restart_count": stream.restart_count,
             "hls_playlist": stream.hls_playlist_path if stream.is_healthy else None,
             "error": stream.error_message,
-            "inference_worker": self.worker_pool.get_status().get(camera_id, {}).get("is_running", False),
+            "inference_worker": self.worker_pool.get_status()
+            .get(camera_id, {})
+            .get("is_running", False),
         }
 
     def get_all_streams_status(self) -> list[dict]:
         """获取所有流的状态"""
-        return [
-            self.get_stream_status(cid)
-            for cid in self._streams
-        ]
+        return [self.get_stream_status(cid) for cid in self._streams]
 
 
 # 单例

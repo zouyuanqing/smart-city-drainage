@@ -26,37 +26,96 @@ class InferenceService:
 
     # COCO 类别映射 (YOLOv8 默认)
     COCO_CLASSES: dict[int, str] = {
-        0: "person", 1: "bicycle", 2: "car", 3: "motorcycle",
-        4: "airplane", 5: "bus", 6: "train", 7: "truck",
-        8: "boat", 9: "traffic light", 10: "fire hydrant",
-        11: "stop sign", 12: "parking meter", 13: "bench",
-        14: "bird", 15: "cat", 16: "dog", 17: "horse",
-        18: "sheep", 19: "cow", 20: "elephant", 21: "bear",
-        22: "zebra", 23: "giraffe", 24: "backpack", 25: "umbrella",
-        26: "handbag", 27: "tie", 28: "suitcase", 29: "frisbee",
-        30: "skis", 31: "snowboard", 32: "sports ball", 33: "kite",
-        34: "baseball bat", 35: "baseball glove", 36: "skateboard",
-        37: "surfboard", 38: "tennis racket", 39: "bottle",
-        40: "wine glass", 41: "cup", 42: "fork", 43: "knife",
-        44: "spoon", 45: "bowl", 46: "banana", 47: "apple",
-        48: "sandwich", 49: "orange", 50: "broccoli", 51: "carrot",
-        52: "hot dog", 53: "pizza", 54: "donut", 55: "cake",
-        56: "chair", 57: "couch", 58: "potted plant", 59: "bed",
-        60: "dining table", 61: "toilet", 62: "tv", 63: "laptop",
-        64: "mouse", 65: "remote", 66: "keyboard", 67: "cell phone",
-        68: "microwave", 69: "oven", 70: "toaster", 71: "sink",
-        72: "refrigerator", 73: "book", 74: "clock", 75: "vase",
-        76: "scissors", 77: "teddy bear", 78: "hair drier", 79: "toothbrush",
+        0: "person",
+        1: "bicycle",
+        2: "car",
+        3: "motorcycle",
+        4: "airplane",
+        5: "bus",
+        6: "train",
+        7: "truck",
+        8: "boat",
+        9: "traffic light",
+        10: "fire hydrant",
+        11: "stop sign",
+        12: "parking meter",
+        13: "bench",
+        14: "bird",
+        15: "cat",
+        16: "dog",
+        17: "horse",
+        18: "sheep",
+        19: "cow",
+        20: "elephant",
+        21: "bear",
+        22: "zebra",
+        23: "giraffe",
+        24: "backpack",
+        25: "umbrella",
+        26: "handbag",
+        27: "tie",
+        28: "suitcase",
+        29: "frisbee",
+        30: "skis",
+        31: "snowboard",
+        32: "sports ball",
+        33: "kite",
+        34: "baseball bat",
+        35: "baseball glove",
+        36: "skateboard",
+        37: "surfboard",
+        38: "tennis racket",
+        39: "bottle",
+        40: "wine glass",
+        41: "cup",
+        42: "fork",
+        43: "knife",
+        44: "spoon",
+        45: "bowl",
+        46: "banana",
+        47: "apple",
+        48: "sandwich",
+        49: "orange",
+        50: "broccoli",
+        51: "carrot",
+        52: "hot dog",
+        53: "pizza",
+        54: "donut",
+        55: "cake",
+        56: "chair",
+        57: "couch",
+        58: "potted plant",
+        59: "bed",
+        60: "dining table",
+        61: "toilet",
+        62: "tv",
+        63: "laptop",
+        64: "mouse",
+        65: "remote",
+        66: "keyboard",
+        67: "cell phone",
+        68: "microwave",
+        69: "oven",
+        70: "toaster",
+        71: "sink",
+        72: "refrigerator",
+        73: "book",
+        74: "clock",
+        75: "vase",
+        76: "scissors",
+        77: "teddy bear",
+        78: "hair drier",
+        79: "toothbrush",
     }
 
     # 自定义类别 (排水系统专用)
     CUSTOM_CLASSES: dict[int, str] = {
-        80: "water_accumulation",   # 积水
-        81: "missing_manhole",      # 井盖缺失
-        82: "damaged_manhole",      # 井盖破损
-        83: "shifted_manhole",      # 井盖移位
-        84: "intruder",             # 非法闯入
-        85: "illegal_parking",      # 违停车辆
+        80: "water_accumulation",  # 积水
+        81: "missing_manhole",  # 井盖缺失
+        82: "damaged_manhole",  # 井盖破损
+        83: "shifted_manhole",  # 井盖移位
+        84: "intruder",  # 非法闯入
+        85: "illegal_parking",  # 违停车辆
     }
 
     @classmethod
@@ -97,8 +156,11 @@ class InferenceService:
         image_np = np.array(image)
 
         return await self._run_inference(
-            image_np, confidence_threshold, iou_threshold,
-            return_annotated, image,
+            image_np,
+            confidence_threshold,
+            iou_threshold,
+            return_annotated,
+            image,
         )
 
     async def infer_from_url(
@@ -130,8 +192,11 @@ class InferenceService:
         image_np = np.array(image)
 
         return await self._run_inference(
-            image_np, confidence_threshold, iou_threshold,
-            return_annotated, image,
+            image_np,
+            confidence_threshold,
+            iou_threshold,
+            return_annotated,
+            image,
         )
 
     async def infer_from_frame(
@@ -154,7 +219,10 @@ class InferenceService:
             {"detections": [...], "inference_time_ms": float, ...}
         """
         return await self._run_inference(
-            frame, confidence_threshold, iou_threshold, return_annotated,
+            frame,
+            confidence_threshold,
+            iou_threshold,
+            return_annotated,
         )
 
     async def _run_inference(
@@ -198,7 +266,9 @@ class InferenceService:
             annotated = self._draw_boxes(image, detections)
             buffered = io.BytesIO()
             Image.fromarray(annotated).save(buffered, format="JPEG", quality=85)
-            result["annotated_image_base64"] = base64.b64encode(buffered.getvalue()).decode()
+            result["annotated_image_base64"] = base64.b64encode(
+                buffered.getvalue()
+            ).decode()
 
         return result
 
@@ -216,15 +286,15 @@ class InferenceService:
 
         # 颜色映射
         color_map = {
-            "water_accumulation": (0, 255, 255),   # 黄色
-            "missing_manhole": (0, 0, 255),        # 红色
-            "damaged_manhole": (0, 165, 255),      # 橙色
-            "shifted_manhole": (0, 140, 255),      # 深橙色
-            "intruder": (255, 0, 0),               # 蓝色
-            "illegal_parking": (255, 0, 255),      # 品红色
-            "person": (255, 0, 0),                 # 蓝色
-            "car": (0, 255, 0),                    # 绿色
-            "truck": (0, 200, 0),                  # 深绿色
+            "water_accumulation": (0, 255, 255),  # 黄色
+            "missing_manhole": (0, 0, 255),  # 红色
+            "damaged_manhole": (0, 165, 255),  # 橙色
+            "shifted_manhole": (0, 140, 255),  # 深橙色
+            "intruder": (255, 0, 0),  # 蓝色
+            "illegal_parking": (255, 0, 255),  # 品红色
+            "person": (255, 0, 0),  # 蓝色
+            "car": (0, 255, 0),  # 绿色
+            "truck": (0, 200, 0),  # 深绿色
         }
 
         for det in detections:
@@ -240,9 +310,18 @@ class InferenceService:
             # 绘制标签
             label = f"{class_name} {confidence:.2f}"
             (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-            cv2.rectangle(img, (bbox[0], bbox[1] - th - 4), (bbox[0] + tw, bbox[1]), color, -1)
-            cv2.putText(img, label, (bbox[0], bbox[1] - 2),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1)
+            cv2.rectangle(
+                img, (bbox[0], bbox[1] - th - 4), (bbox[0] + tw, bbox[1]), color, -1
+            )
+            cv2.putText(
+                img,
+                label,
+                (bbox[0], bbox[1] - 2),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.5,
+                (255, 255, 255),
+                1,
+            )
 
         return img
 

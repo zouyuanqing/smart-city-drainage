@@ -16,14 +16,13 @@ from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Optional
 from uuid import uuid4
 
-from app.core.config import settings
-
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class SSEClient:
     """单个 SSE 客户端连接"""
+
     client_id: str
     queue: asyncio.Queue[dict[str, str]]
     connected_at: float = field(default_factory=time.time)
@@ -51,7 +50,9 @@ class SSEManager:
             cls._instance = cls()
         return cls._instance
 
-    async def connect(self, last_event_id: str | None = None) -> tuple[str, asyncio.Queue]:
+    async def connect(
+        self, last_event_id: str | None = None
+    ) -> tuple[str, asyncio.Queue]:
         """
         注册新的 SSE 客户端
 
@@ -70,7 +71,9 @@ class SSEManager:
                 queue=queue,
             )
 
-        logger.info("🔗 SSE 客户端连接: %s (当前连接数: %d)", client_id, len(self._clients))
+        logger.info(
+            "🔗 SSE 客户端连接: %s (当前连接数: %d)", client_id, len(self._clients)
+        )
         return client_id, queue
 
     async def disconnect(self, client_id: str) -> None:
@@ -93,18 +96,20 @@ class SSEManager:
             event_id = self._event_counter
             self._event_history.append((event_id, event_type, event_data))
             if len(self._event_history) > self._MAX_HISTORY:
-                self._event_history = self._event_history[-self._MAX_HISTORY:]
+                self._event_history = self._event_history[-self._MAX_HISTORY :]
             clients = list(self._clients.items())
 
         dead_clients: list[str] = []
 
         for client_id, client in clients:
             try:
-                client.queue.put_nowait({
-                    "event": event_type,
-                    "data": event_data,
-                    "id": str(event_id),
-                })
+                client.queue.put_nowait(
+                    {
+                        "event": event_type,
+                        "data": event_data,
+                        "id": str(event_id),
+                    }
+                )
                 client.event_count += 1
                 self._total_events_sent += 1
             except asyncio.QueueFull:
@@ -117,17 +122,23 @@ class SSEManager:
 
     async def broadcast_sensor(self, readings: list[dict[str, Any]]) -> None:
         """广播传感器数据"""
-        await self.broadcast("sensors", {
-            "readings": readings,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        await self.broadcast(
+            "sensors",
+            {
+                "readings": readings,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
 
     async def broadcast_alert(self, alert_data: dict[str, Any]) -> None:
         """广播告警"""
-        await self.broadcast("alerts", {
-            "alert": alert_data,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        })
+        await self.broadcast(
+            "alerts",
+            {
+                "alert": alert_data,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        )
 
     def event_generator(
         self,

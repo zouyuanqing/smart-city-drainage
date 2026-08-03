@@ -32,18 +32,21 @@ logger = logging.getLogger(__name__)
 # 类型定义
 # ============================================================
 
+
 class ModelStatus(str, Enum):
     """模型加载状态枚举"""
-    LOADING = "loading"       # 正在加载
-    ACTIVE = "active"         # 已激活，正在使用
-    UNLOADING = "unloading"   # 正在卸载
-    ERROR = "error"           # 加载/验证失败
-    STANDBY = "standby"       # 已加载但未激活 (预加载完成)
+
+    LOADING = "loading"  # 正在加载
+    ACTIVE = "active"  # 已激活，正在使用
+    UNLOADING = "unloading"  # 正在卸载
+    ERROR = "error"  # 加载/验证失败
+    STANDBY = "standby"  # 已加载但未激活 (预加载完成)
 
 
 @dataclass
 class ModelMetadata:
     """模型元数据"""
+
     version: str
     file_path: str
     file_size_bytes: int = 0
@@ -59,6 +62,7 @@ class ModelMetadata:
 # ============================================================
 # ModelManager — 单例核心类
 # ============================================================
+
 
 class ModelManager:
     """
@@ -109,10 +113,10 @@ class ModelManager:
             return
 
         # ---- 内部状态 ----
-        self._model: Any = None               # 当前活跃的 YOLO 模型对象
-        self._standby_model: Any = None       # 预加载的备用模型
-        self._active_version: str = ""        # 当前活跃版本名
-        self._standby_version: str = ""       # 预加载版本名
+        self._model: Any = None  # 当前活跃的 YOLO 模型对象
+        self._standby_model: Any = None  # 预加载的备用模型
+        self._active_version: str = ""  # 当前活跃版本名
+        self._standby_version: str = ""  # 预加载版本名
         self._model_registry: dict[str, ModelMetadata] = {}  # 版本注册表
         self._switch_lock = threading.RLock()  # 切换专用可重入锁
         self._inference_lock = threading.RLock()  # 推理互斥锁
@@ -123,14 +127,18 @@ class ModelManager:
         # 标记初始化完成
         object.__setattr__(self, "_initialized", True)
 
-        logger.info("🚀 ModelManager 单例初始化完成 | 设备: %s", settings.MODEL_INFERENCE_DEVICE)
+        logger.info(
+            "🚀 ModelManager 单例初始化完成 | 设备: %s", settings.MODEL_INFERENCE_DEVICE
+        )
 
         # 启动时自动加载默认版本
         try:
             default_version = settings.DEFAULT_MODEL_VERSION
             self.load_and_activate(default_version)
         except Exception as exc:
-            logger.error("❌ 默认模型 %s 加载失败: %s", settings.DEFAULT_MODEL_VERSION, exc)
+            logger.error(
+                "❌ 默认模型 %s 加载失败: %s", settings.DEFAULT_MODEL_VERSION, exc
+            )
             logger.warning("⚠️  系统将在无模型状态下运行，推理接口将返回 503")
 
     # ================================================================
@@ -170,7 +178,9 @@ class ModelManager:
         self._model_registry.update(discovered)
         logger.info("📁 扫描模型仓库: 发现 %d 个模型版本", len(discovered))
         for v, m in discovered.items():
-            logger.info("   └─ %s (%s, %.1f MB)", v, m.model_type, m.file_size_bytes / 1e6)
+            logger.info(
+                "   └─ %s (%s, %.1f MB)", v, m.model_type, m.file_size_bytes / 1e6
+            )
 
         return discovered
 
@@ -196,7 +206,9 @@ class ModelManager:
         """
         file_path = self._resolve_model_path(version)
         if file_path is None:
-            raise FileNotFoundError(f"模型版本 '{version}' 不在仓库中，请先放入 {settings.model_storage_dir}")
+            raise FileNotFoundError(
+                f"模型版本 '{version}' 不在仓库中，请先放入 {settings.model_storage_dir}"
+            )
 
         logger.info("🔄 [%s] 开始加载模型: %s", version, file_path)
 
@@ -262,9 +274,13 @@ class ModelManager:
             RuntimeError: 预加载或验证失败
         """
         if target_version == self._active_version:
-            raise ValueError(f"目标版本 '{target_version}' 与当前活跃版本相同，无需切换")
+            raise ValueError(
+                f"目标版本 '{target_version}' 与当前活跃版本相同，无需切换"
+            )
 
-        logger.info("🔥 开始模型热切换: %s → %s", self._active_version or "(无)", target_version)
+        logger.info(
+            "🔥 开始模型热切换: %s → %s", self._active_version or "(无)", target_version
+        )
 
         # --- Phase 1: 预加载目标模型 (不阻塞推理) ---
         try:
@@ -304,14 +320,18 @@ class ModelManager:
             if old_version and old_version in self._model_registry:
                 self._model_registry[old_version].status = ModelStatus.UNLOADING
 
-            logger.info("⚡ 原子切换完成! 活跃模型: %s → %s", old_version, target_version)
+            logger.info(
+                "⚡ 原子切换完成! 活跃模型: %s → %s", old_version, target_version
+            )
 
         # --- Phase 4: 卸载旧模型 (锁外执行，耗时的显存回收) ---
         if old_model is not None:
             logger.info("🗑️  正在卸载旧模型 '%s' 并释放显存...", old_version)
             self._unload_model(old_model)
             if old_version in self._model_registry:
-                self._model_registry[old_version].status = ModelStatus.ERROR  # 标记已卸载
+                self._model_registry[old_version].status = (
+                    ModelStatus.ERROR
+                )  # 标记已卸载
             logger.info("✅ 旧模型已卸载")
 
         # --- Phase 5: 触发回调 ---
@@ -385,7 +405,9 @@ class ModelManager:
         # 解析结果
         detections = self._parse_results(results)
 
-        logger.debug("🎯 推理完成 | 耗时: %.1fms | 检测数: %d", elapsed_ms, len(detections))
+        logger.debug(
+            "🎯 推理完成 | 耗时: %.1fms | 检测数: %d", elapsed_ms, len(detections)
+        )
         return detections
 
     # ================================================================
@@ -437,6 +459,7 @@ class ModelManager:
     def _load_yolo_model(self, file_path: str) -> Any:
         """从文件加载 YOLO 模型"""
         from ultralytics import YOLO
+
         model = YOLO(file_path)
         # 预热
         model.to(settings.MODEL_INFERENCE_DEVICE)
@@ -446,7 +469,9 @@ class ModelManager:
         """安全卸载模型，释放 GPU 显存"""
         try:
             import gc
+
             import torch
+
             del model
             gc.collect()
             if torch.cuda.is_available():
@@ -458,8 +483,11 @@ class ModelManager:
     def _verify_model(self, model: Any) -> None:
         """验证模型: 使用空白的测试图像跑一次推理"""
         import numpy as np
+
         dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-        model.predict(dummy, conf=0.9, verbose=False, device=settings.MODEL_INFERENCE_DEVICE)
+        model.predict(
+            dummy, conf=0.9, verbose=False, device=settings.MODEL_INFERENCE_DEVICE
+        )
 
     def _resolve_model_path(self, version: str) -> Optional[str]:
         """根据版本名解析模型文件路径"""
@@ -505,21 +533,33 @@ class ModelManager:
             if result.boxes is None:
                 continue
 
-            boxes = result.boxes.xyxy.cpu().numpy() if hasattr(result.boxes, 'xyxy') else []
-            confs = result.boxes.conf.cpu().numpy() if hasattr(result.boxes, 'conf') else []
-            cls_ids = result.boxes.cls.cpu().numpy() if hasattr(result.boxes, 'cls') else []
+            boxes = (
+                result.boxes.xyxy.cpu().numpy() if hasattr(result.boxes, "xyxy") else []
+            )
+            confs = (
+                result.boxes.conf.cpu().numpy() if hasattr(result.boxes, "conf") else []
+            )
+            cls_ids = (
+                result.boxes.cls.cpu().numpy() if hasattr(result.boxes, "cls") else []
+            )
 
             for i in range(len(boxes)):
                 cls_id = int(cls_ids[i])
-                class_name = result.names.get(cls_id, f"class_{cls_id}") if hasattr(result, 'names') else f"class_{cls_id}"
+                class_name = (
+                    result.names.get(cls_id, f"class_{cls_id}")
+                    if hasattr(result, "names")
+                    else f"class_{cls_id}"
+                )
 
-                detections.append({
-                    "class_id": cls_id,
-                    "class_name": class_name,
-                    "confidence": round(float(confs[i]), 4),
-                    "bbox": [round(float(x), 1) for x in boxes[i]],
-                    "bbox_normalized": False,
-                })
+                detections.append(
+                    {
+                        "class_id": cls_id,
+                        "class_name": class_name,
+                        "confidence": round(float(confs[i]), 4),
+                        "bbox": [round(float(x), 1) for x in boxes[i]],
+                        "bbox_normalized": False,
+                    }
+                )
 
         return detections
 
@@ -535,6 +575,7 @@ class ModelManager:
 # ============================================================
 # 便捷函数
 # ============================================================
+
 
 def get_model_manager() -> ModelManager:
     """获取全局 ModelManager 实例"""

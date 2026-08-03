@@ -7,8 +7,6 @@ API 路由汇总
 
 from __future__ import annotations
 
-import asyncio
-import base64
 import csv
 import io
 import uuid
@@ -16,36 +14,42 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 
 from fastapi import (
-    APIRouter, Depends, File, HTTPException, Query, Request,
-    UploadFile, WebSocket, WebSocketDisconnect, status,
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
 )
 from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sse_starlette.sse import EventSourceResponse
 
-from app.core.database import get_db, get_db_session
+from app.core.database import get_db_session
 from app.core.model_manager import get_model_manager
 from app.core.security import (
     create_access_token,
-    decode_access_token,
-    get_current_user,
-    get_password_hash,
     require_auth,
     require_role,
     verify_password,
 )
-from app.models.db_models import Alert as AlertModel, Device as DeviceModel, RoleEnum, User as UserModel
+from app.models.db_models import Alert as AlertModel
+from app.models.db_models import Device as DeviceModel
+from app.models.db_models import (
+    RoleEnum,
+)
+from app.models.db_models import User as UserModel
 from app.schemas.schemas import (
     AlertAcknowledge,
-    AlertResponse,
     InferenceRequest,
     InferenceResponse,
     ModelStatusResponse,
     ModelSwitchRequest,
     ModelUploadResponse,
-    SensorReadingBatch,
     StreamCreate,
-    StreamResponse,
     TokenRequest,
     TokenResponse,
     UserBrief,
@@ -63,6 +67,7 @@ sse_manager = SSEManager.get_instance()
 # ============================================================
 # 健康检查
 # ============================================================
+
 
 @router.get("/health")
 async def health_check():
@@ -87,12 +92,15 @@ async def system_status():
 # 认证
 # ============================================================
 
+
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(request: TokenRequest):
     user = None
     try:
         async with get_db_session() as db:
-            result = await db.execute(select(UserModel).where(UserModel.username == request.username))
+            result = await db.execute(
+                select(UserModel).where(UserModel.username == request.username)
+            )
             user = result.scalar_one_or_none()
             if user is not None and user.is_active:
                 if not verify_password(request.password, user.hashed_password):
@@ -106,13 +114,17 @@ async def login(request: TokenRequest):
 
     if user is None:
         if request.username == "admin" and request.password == "Admin@123456":
-            user = type("FallbackUser", (), {
-                "id": uuid.UUID("00000000-0000-0000-0000-000000000001"),
-                "username": "admin",
-                "email": "admin@smartcity.local",
-                "full_name": "系统管理员",
-                "role": "admin",
-            })()
+            user = type(
+                "FallbackUser",
+                (),
+                {
+                    "id": uuid.UUID("00000000-0000-0000-0000-000000000001"),
+                    "username": "admin",
+                    "email": "admin@smartcity.local",
+                    "full_name": "系统管理员",
+                    "role": "admin",
+                },
+            )()
         else:
             raise HTTPException(status_code=401, detail="用户名或密码错误")
 
@@ -120,7 +132,10 @@ async def login(request: TokenRequest):
     access_token = create_access_token(
         subject=str(user.id),
         expires_delta=expires_delta,
-        extra_claims={"username": user.username, "role": user.role.value if isinstance(user.role, RoleEnum) else user.role},
+        extra_claims={
+            "username": user.username,
+            "role": user.role.value if isinstance(user.role, RoleEnum) else user.role,
+        },
     )
 
     user_role = user.role.value if isinstance(user.role, RoleEnum) else user.role
@@ -154,6 +169,7 @@ async def get_me(user: dict = Depends(require_auth)):
 # 模型管理 (Model Hot-Switching)
 # ============================================================
 
+
 @router.get("/models/status", response_model=ModelStatusResponse)
 async def get_model_status():
     """获取当前模型状态"""
@@ -175,7 +191,7 @@ async def switch_model(
 
     try:
         # 使用后台线程异步切换
-        thread = manager.switch_model_async(request.target_version)
+        manager.switch_model_async(request.target_version)
         return {
             "message": f"模型热切换已启动: → {request.target_version}",
             "from_version": manager.active_version,
@@ -199,14 +215,16 @@ async def upload_model(
     """
     from app.core.config import settings
 
-    if not file.filename or not file.filename.endswith(('.pt', '.onnx', '.engine')):
-        raise HTTPException(status_code=400, detail="不支持的文件格式，请上传 .pt / .onnx / .engine 文件")
+    if not file.filename or not file.filename.endswith((".pt", ".onnx", ".engine")):
+        raise HTTPException(
+            status_code=400,
+            detail="不支持的文件格式，请上传 .pt / .onnx / .engine 文件",
+        )
 
     import hashlib
-    import shutil
 
     # 确定存储路径
-    ext = file.filename.rsplit('.', 1)[-1]
+    ext = file.filename.rsplit(".", 1)[-1]
     save_path = settings.model_storage_dir / f"{version}.{ext}"
 
     # 计算 SHA256
@@ -254,6 +272,7 @@ async def list_model_versions():
 # AI 推理
 # ============================================================
 
+
 @router.post("/inference/detect", response_model=InferenceResponse)
 async def detect_objects(request: InferenceRequest):
     """
@@ -277,7 +296,9 @@ async def detect_objects(request: InferenceRequest):
                 return_annotated=request.return_annotated,
             )
         else:
-            raise HTTPException(status_code=400, detail="必须提供 image_base64 或 image_url")
+            raise HTTPException(
+                status_code=400, detail="必须提供 image_base64 或 image_url"
+            )
 
         return InferenceResponse(**result)
 
@@ -293,8 +314,12 @@ async def detect_objects(request: InferenceRequest):
 # 视频流管理
 # ============================================================
 
+
 @router.post("/streams/start", response_model=dict)
-async def start_stream(request: StreamCreate, user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator))):
+async def start_stream(
+    request: StreamCreate,
+    user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
     """启动 RTSP → HLS 转码"""
     try:
         stream = await stream_service.start_stream(
@@ -312,7 +337,10 @@ async def start_stream(request: StreamCreate, user: dict = Depends(require_role(
 
 
 @router.post("/streams/{camera_id}/stop")
-async def stop_stream(camera_id: str, user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator))):
+async def stop_stream(
+    camera_id: str,
+    user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
     """停止视频流转码"""
     await stream_service.stop_stream(camera_id)
     return {"status": "stopped", "camera_id": camera_id}
@@ -325,8 +353,12 @@ async def get_streams_status():
 
 
 @router.post("/streams/{camera_id}/inference/start")
-async def start_inference(camera_id: str, current_user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator))):
+async def start_inference(
+    camera_id: str,
+    current_user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
     from app.services.stream_service import stream_service
+
     stream_info = stream_service.streams.get(camera_id)
     if not stream_info:
         raise HTTPException(status_code=404, detail="视频流不存在")
@@ -343,8 +375,12 @@ async def start_inference(camera_id: str, current_user: dict = Depends(require_r
 
 
 @router.post("/streams/{camera_id}/inference/stop")
-async def stop_inference(camera_id: str, current_user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator))):
+async def stop_inference(
+    camera_id: str,
+    current_user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
     from app.services.stream_service import stream_service
+
     try:
         stream_service.worker_pool.remove_worker(camera_id)
         return {"camera_id": camera_id, "inference": "stopped"}
@@ -355,6 +391,7 @@ async def stop_inference(camera_id: str, current_user: dict = Depends(require_ro
 # ============================================================
 # SSE 实时数据推送
 # ============================================================
+
 
 @router.get("/sse/events")
 async def sse_events(request: Request):
@@ -383,6 +420,7 @@ async def sse_events(request: Request):
 # WebSocket
 # ============================================================
 
+
 @router.websocket("/ws/control")
 async def websocket_control(websocket: WebSocket):
     """
@@ -394,14 +432,16 @@ async def websocket_control(websocket: WebSocket):
     """
     await websocket.accept()
     client_id = str(uuid.uuid4())[:8]
-    logger = __import__('logging').getLogger(__name__)
+    logger = __import__("logging").getLogger(__name__)
     logger.info("🔌 WebSocket 客户端连接: %s", client_id)
 
     try:
-        await websocket.send_json({
-            "type": "connected",
-            "payload": {"client_id": client_id, "message": "控制通道已建立"},
-        })
+        await websocket.send_json(
+            {
+                "type": "connected",
+                "payload": {"client_id": client_id, "message": "控制通道已建立"},
+            }
+        )
 
         while True:
             data = await websocket.receive_json()
@@ -411,93 +451,132 @@ async def websocket_control(websocket: WebSocket):
                 await websocket.send_json({"type": "pong", "payload": {}})
             elif msg_type == "control":
                 logger.info("📡 收到控制指令: %s", data)
-                await websocket.send_json({
-                    "type": "control_ack",
-                    "payload": {"status": "received", "command": data.get("payload", {})},
-                })
+                await websocket.send_json(
+                    {
+                        "type": "control_ack",
+                        "payload": {
+                            "status": "received",
+                            "command": data.get("payload", {}),
+                        },
+                    }
+                )
             elif msg_type == "device_control":
                 payload = data.get("payload", {})
                 device_id = payload.get("device_id")
                 command = payload.get("command")
 
                 if not device_id or not command:
-                    await websocket.send_json({
-                        "type": "control_error",
-                        "payload": {"error": "缺少 device_id 或 command"},
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "control_error",
+                            "payload": {"error": "缺少 device_id 或 command"},
+                        }
+                    )
                     continue
 
                 async with get_db_session() as db:
                     result = await db.execute(
-                        select(DeviceModel).where(DeviceModel.id == uuid.UUID(device_id))
+                        select(DeviceModel).where(
+                            DeviceModel.id == uuid.UUID(device_id)
+                        )
                     )
                     device = result.scalar_one_or_none()
 
                 if not device:
-                    await websocket.send_json({
-                        "type": "control_error",
-                        "payload": {"error": "设备不存在"},
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "control_error",
+                            "payload": {"error": "设备不存在"},
+                        }
+                    )
                     continue
 
                 if command == "restart":
-                    await websocket.send_json({
-                        "type": "control_ack",
-                        "payload": {"device_id": device_id, "command": "restart", "status": "executed"},
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "control_ack",
+                            "payload": {
+                                "device_id": device_id,
+                                "command": "restart",
+                                "status": "executed",
+                            },
+                        }
+                    )
                 elif command == "status_query":
-                    await websocket.send_json({
-                        "type": "device_status",
-                        "payload": {
-                            "device_id": device_id,
-                            "status": device.status,
-                            "battery_level": device.battery_level,
-                            "signal_strength": device.signal_strength,
-                            "last_heartbeat": device.last_heartbeat.isoformat() if device.last_heartbeat else None,
-                        },
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "device_status",
+                            "payload": {
+                                "device_id": device_id,
+                                "status": device.status,
+                                "battery_level": device.battery_level,
+                                "signal_strength": device.signal_strength,
+                                "last_heartbeat": (
+                                    device.last_heartbeat.isoformat()
+                                    if device.last_heartbeat
+                                    else None
+                                ),
+                            },
+                        }
+                    )
                 else:
-                    await websocket.send_json({
-                        "type": "control_ack",
-                        "payload": {"device_id": device_id, "command": command, "status": "unknown_command"},
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "control_ack",
+                            "payload": {
+                                "device_id": device_id,
+                                "command": command,
+                                "status": "unknown_command",
+                            },
+                        }
+                    )
 
             elif msg_type == "device_status_query":
                 device_id = data.get("device_id")
                 if not device_id:
-                    await websocket.send_json({
-                        "type": "control_error",
-                        "payload": {"error": "缺少 device_id"},
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "control_error",
+                            "payload": {"error": "缺少 device_id"},
+                        }
+                    )
                     continue
 
                 async with get_db_session() as db:
                     result = await db.execute(
-                        select(DeviceModel).where(DeviceModel.id == uuid.UUID(device_id))
+                        select(DeviceModel).where(
+                            DeviceModel.id == uuid.UUID(device_id)
+                        )
                     )
                     device = result.scalar_one_or_none()
 
                 if device:
-                    await websocket.send_json({
-                        "type": "device_status",
-                        "payload": {
-                            "device_id": device_id,
-                            "status": device.status,
-                            "battery_level": device.battery_level,
-                            "signal_strength": device.signal_strength,
-                        },
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "device_status",
+                            "payload": {
+                                "device_id": device_id,
+                                "status": device.status,
+                                "battery_level": device.battery_level,
+                                "signal_strength": device.signal_strength,
+                            },
+                        }
+                    )
                 else:
-                    await websocket.send_json({
-                        "type": "control_error",
-                        "payload": {"error": "设备不存在"},
-                    })
+                    await websocket.send_json(
+                        {
+                            "type": "control_error",
+                            "payload": {"error": "设备不存在"},
+                        }
+                    )
 
             else:
-                await websocket.send_json({
-                    "type": "error",
-                    "payload": {"message": f"未知消息类型: {msg_type}"},
-                })
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "payload": {"message": f"未知消息类型: {msg_type}"},
+                    }
+                )
 
     except WebSocketDisconnect:
         logger.info("🔌 WebSocket 客户端断开: %s", client_id)
@@ -509,6 +588,7 @@ async def websocket_control(websocket: WebSocket):
 # 传感器数据 (InfluxDB 查询)
 # ============================================================
 
+
 @router.get("/sensors/latest")
 async def get_latest_sensor_data():
     from app.services.influxdb_service import influxdb_service
@@ -517,7 +597,11 @@ async def get_latest_sensor_data():
         try:
             readings = influxdb_service.get_latest_readings()
             if readings:
-                return {"readings": readings, "timestamp": datetime.now(timezone.utc).isoformat(), "source": "influxdb"}
+                return {
+                    "readings": readings,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "source": "influxdb",
+                }
         except Exception:
             pass
 
@@ -543,7 +627,9 @@ async def get_sensor_history(
 
     if influxdb_service.is_connected:
         try:
-            data = influxdb_service.get_historical_readings(device_id, hours, interval_minutes)
+            data = influxdb_service.get_historical_readings(
+                device_id, hours, interval_minutes
+            )
             if data:
                 return {"device_id": device_id, "data": data, "source": "influxdb"}
         except Exception:
@@ -555,11 +641,13 @@ async def get_sensor_history(
     data = []
     for i in range(hours * 60 // interval_minutes):
         ts = now - timedelta(minutes=i * interval_minutes)
-        data.append({
-            "time": ts.isoformat(),
-            "water_level_mm": round(80 + random.random() * 60, 1),
-            "flow_rate_m3h": round(2 + random.random() * 5, 1),
-        })
+        data.append(
+            {
+                "time": ts.isoformat(),
+                "water_level_mm": round(80 + random.random() * 60, 1),
+                "flow_rate_m3h": round(2 + random.random() * 5, 1),
+            }
+        )
     data.reverse()
     return {"device_id": device_id, "data": data, "source": "mock"}
 
@@ -574,21 +662,28 @@ async def export_sensor_data(
 ):
     """导出传感器历史数据"""
     try:
-        from app.services.influxdb_service import influxdb_service
         from app.core.config import settings
+        from app.services.influxdb_service import influxdb_service
+
         if influxdb_service and influxdb_service._client:
             tables = influxdb_service._query_api.query_data_frame(
                 f'from(bucket: "{settings.INFLUXDB_BUCKET}")'
                 f'  |> range(start: {start_time or "-30d"}, stop: {end_time or "now()"})'
                 f'  |> filter(fn: (r) => r._measurement == "sensor_readings")'
-                + (f'  |> filter(fn: (r) => r.device_id == "{device_id}")' if device_id else ""),
+                + (
+                    f'  |> filter(fn: (r) => r.device_id == "{device_id}")'
+                    if device_id
+                    else ""
+                ),
                 org=settings.INFLUXDB_ORG,
             )
             if isinstance(tables, list) and len(tables) > 0:
                 import pandas as pd
+
                 df = pd.concat(tables)
             elif hasattr(tables, "empty") and not tables.empty:
                 import pandas as pd
+
                 df = tables
             else:
                 df = None
@@ -603,13 +698,23 @@ async def export_sensor_data(
         writer.writerow(["timestamp", "device_id", "field", "value"])
         if df is not None:
             import pandas as pd
+
             for _, row in df.iterrows():
-                writer.writerow([row.get("_time", ""), row.get("device_id", ""), row.get("_field", ""), row.get("_value", "")])
+                writer.writerow(
+                    [
+                        row.get("_time", ""),
+                        row.get("device_id", ""),
+                        row.get("_field", ""),
+                        row.get("_value", ""),
+                    ]
+                )
         output.seek(0)
         return StreamingResponse(
             iter([output.getvalue()]),
             media_type="text/csv",
-            headers={"Content-Disposition": f"attachment; filename=sensor_data_{datetime.now().strftime('%Y%m%d')}.csv"},
+            headers={
+                "Content-Disposition": f"attachment; filename=sensor_data_{datetime.now().strftime('%Y%m%d')}.csv"
+            },
         )
 
     return {"error": "Unsupported format"}
@@ -619,6 +724,7 @@ async def export_sensor_data(
 # 告警管理
 # ============================================================
 
+
 @router.get("/alerts")
 async def get_alerts(
     limit: int = Query(default=50, ge=1, le=200),
@@ -626,7 +732,9 @@ async def get_alerts(
 ):
     try:
         async with get_db_session() as db:
-            stmt = select(AlertModel).order_by(AlertModel.created_at.desc()).limit(limit)
+            stmt = (
+                select(AlertModel).order_by(AlertModel.created_at.desc()).limit(limit)
+            )
             if level:
                 stmt = stmt.where(AlertModel.level == level)
             result = await db.execute(stmt)
@@ -636,31 +744,38 @@ async def get_alerts(
             for a in db_alerts:
                 device_name = None
                 if a.device_id:
-                    dev_result = await db.execute(select(DeviceModel).where(DeviceModel.id == a.device_id))
+                    dev_result = await db.execute(
+                        select(DeviceModel).where(DeviceModel.id == a.device_id)
+                    )
                     dev = dev_result.scalar_one_or_none()
                     device_name = dev.name if dev else None
 
-                alerts.append({
-                    "id": str(a.id),
-                    "alert_type": a.alert_type,
-                    "level": a.level,
-                    "title": a.title,
-                    "description": a.description,
-                    "device_id": str(a.device_id) if a.device_id else None,
-                    "device_name": device_name,
-                    "latitude": None,
-                    "longitude": None,
-                    "snapshot_url": a.snapshot_url,
-                    "is_acknowledged": a.is_acknowledged,
-                    "is_resolved": a.is_resolved,
-                    "created_at": a.created_at.isoformat() if a.created_at else None,
-                })
+                alerts.append(
+                    {
+                        "id": str(a.id),
+                        "alert_type": a.alert_type,
+                        "level": a.level,
+                        "title": a.title,
+                        "description": a.description,
+                        "device_id": str(a.device_id) if a.device_id else None,
+                        "device_name": device_name,
+                        "latitude": None,
+                        "longitude": None,
+                        "snapshot_url": a.snapshot_url,
+                        "is_acknowledged": a.is_acknowledged,
+                        "is_resolved": a.is_resolved,
+                        "created_at": (
+                            a.created_at.isoformat() if a.created_at else None
+                        ),
+                    }
+                )
             return {"alerts": alerts, "total": len(alerts)}
     except Exception:
-        __import__('logging').getLogger(__name__).exception("查询告警列表失败")
+        __import__("logging").getLogger(__name__).exception("查询告警列表失败")
+
+    import random
 
     from app.services.mock_data_generator import ALERT_TITLES, PRESET_DEVICES
-    import random
 
     mock_alerts = []
     now = datetime.now(timezone.utc)
@@ -668,21 +783,23 @@ async def get_alerts(
         alert_type, level, title = random.choice(ALERT_TITLES)
         device = random.choice(PRESET_DEVICES)
         ts = now - timedelta(minutes=random.randint(1, 360))
-        mock_alerts.append({
-            "id": str(uuid.uuid4()),
-            "alert_type": alert_type,
-            "level": level,
-            "title": title,
-            "description": f"{device['name']} - {title}",
-            "device_id": device["id"],
-            "device_name": device["name"],
-            "latitude": device["lat"],
-            "longitude": device["lng"],
-            "snapshot_url": None,
-            "is_acknowledged": random.random() > 0.6,
-            "is_resolved": random.random() > 0.8,
-            "created_at": ts.isoformat(),
-        })
+        mock_alerts.append(
+            {
+                "id": str(uuid.uuid4()),
+                "alert_type": alert_type,
+                "level": level,
+                "title": title,
+                "description": f"{device['name']} - {title}",
+                "device_id": device["id"],
+                "device_name": device["name"],
+                "latitude": device["lat"],
+                "longitude": device["lng"],
+                "snapshot_url": None,
+                "is_acknowledged": random.random() > 0.6,
+                "is_resolved": random.random() > 0.8,
+                "created_at": ts.isoformat(),
+            }
+        )
     return {"alerts": mock_alerts, "total": len(mock_alerts), "source": "mock"}
 
 
@@ -696,6 +813,7 @@ async def export_alert_data(
 ):
     """导出告警记录"""
     from app.models.db_models import Alert
+
     alerts = []
     try:
         async with get_db_session() as db:
@@ -709,26 +827,54 @@ async def export_alert_data(
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["id", "device_id", "alert_type", "level", "title", "description", "is_acknowledged", "is_resolved", "created_at"])
+    writer.writerow(
+        [
+            "id",
+            "device_id",
+            "alert_type",
+            "level",
+            "title",
+            "description",
+            "is_acknowledged",
+            "is_resolved",
+            "created_at",
+        ]
+    )
     for alert in alerts:
-        writer.writerow([
-            str(alert.id), str(alert.device_id), alert.alert_type, alert.level,
-            alert.title, alert.description or "", alert.is_acknowledged,
-            alert.is_resolved, str(alert.created_at) if alert.created_at else ""
-        ])
+        writer.writerow(
+            [
+                str(alert.id),
+                str(alert.device_id),
+                alert.alert_type,
+                alert.level,
+                alert.title,
+                alert.description or "",
+                alert.is_acknowledged,
+                alert.is_resolved,
+                str(alert.created_at) if alert.created_at else "",
+            ]
+        )
     output.seek(0)
     return StreamingResponse(
         iter([output.getvalue()]),
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=alerts_{datetime.now().strftime('%Y%m%d')}.csv"},
+        headers={
+            "Content-Disposition": f"attachment; filename=alerts_{datetime.now().strftime('%Y%m%d')}.csv"
+        },
     )
 
 
 @router.post("/alerts/{alert_id}/acknowledge")
-async def acknowledge_alert(alert_id: str, action: AlertAcknowledge, user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator))):
+async def acknowledge_alert(
+    alert_id: str,
+    action: AlertAcknowledge,
+    user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
     try:
         async with get_db_session() as db:
-            result = await db.execute(select(AlertModel).where(AlertModel.id == alert_id))
+            result = await db.execute(
+                select(AlertModel).where(AlertModel.id == alert_id)
+            )
             alert = result.scalar_one_or_none()
             if alert:
                 alert.is_acknowledged = True
@@ -756,7 +902,9 @@ async def acknowledge_alert(alert_id: str, action: AlertAcknowledge, user: dict 
 async def _get_db_devices() -> list[dict[str, Any]]:
     try:
         async with get_db_session() as db:
-            result = await db.execute(select(DeviceModel).order_by(DeviceModel.created_at))
+            result = await db.execute(
+                select(DeviceModel).order_by(DeviceModel.created_at)
+            )
             devices = result.scalars().all()
             if devices:
                 return [
@@ -771,7 +919,9 @@ async def _get_db_devices() -> list[dict[str, Any]]:
                         "status": d.status,
                         "battery_level": d.battery_level,
                         "signal_strength": d.signal_strength,
-                        "last_heartbeat": d.last_heartbeat.isoformat() if d.last_heartbeat else None,
+                        "last_heartbeat": (
+                            d.last_heartbeat.isoformat() if d.last_heartbeat else None
+                        ),
                     }
                     for d in devices
                 ]
@@ -779,6 +929,7 @@ async def _get_db_devices() -> list[dict[str, Any]]:
         pass
 
     from app.services.mock_data_generator import PRESET_DEVICES
+
     return [
         {
             "id": d["id"],
@@ -824,7 +975,13 @@ async def create_device(
             db.add(new_device)
             await db.commit()
             await db.refresh(new_device)
-            return {"device": {"id": str(new_device.id), "code": new_device.device_code, "name": new_device.name}}
+            return {
+                "device": {
+                    "id": str(new_device.id),
+                    "code": new_device.device_code,
+                    "name": new_device.name,
+                }
+            }
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"创建失败: {exc}")
 
@@ -838,7 +995,9 @@ async def update_device(
     """更新设备"""
     try:
         async with get_db_session() as db:
-            result = await db.execute(select(DeviceModel).where(DeviceModel.id == device_id))
+            result = await db.execute(
+                select(DeviceModel).where(DeviceModel.id == device_id)
+            )
             device = result.scalar_one_or_none()
             if not device:
                 raise HTTPException(status_code=404, detail="设备不存在")
@@ -861,7 +1020,9 @@ async def delete_device(
     """删除设备"""
     try:
         async with get_db_session() as db:
-            result = await db.execute(select(DeviceModel).where(DeviceModel.id == device_id))
+            result = await db.execute(
+                select(DeviceModel).where(DeviceModel.id == device_id)
+            )
             device = result.scalar_one_or_none()
             if not device:
                 raise HTTPException(status_code=404, detail="设备不存在")
@@ -876,6 +1037,7 @@ async def delete_device(
 # ============================================================
 # 模拟数据控制
 # ============================================================
+
 
 @router.get("/mock/status")
 async def get_mock_status():

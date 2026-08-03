@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
 from typing import Any, Optional
 
 from app.core.config import settings
@@ -31,6 +30,7 @@ class InfluxDBService:
         """初始化 InfluxDB 客户端连接"""
         try:
             from influxdb_client import InfluxDBClient
+
             self._client = InfluxDBClient(
                 url=settings.INFLUXDB_URL,
                 token=settings.INFLUXDB_TOKEN,
@@ -74,6 +74,7 @@ class InfluxDBService:
             return
         try:
             from influxdb_client import Point
+
             point = (
                 Point("sensor_readings")
                 .tag("device_id", reading.get("device_id", ""))
@@ -103,6 +104,7 @@ class InfluxDBService:
             return
         try:
             from influxdb_client import Point
+
             points = []
             for reading in readings:
                 point = (
@@ -122,7 +124,9 @@ class InfluxDBService:
         except Exception as exc:
             logger.error("InfluxDB 批量写入失败: %s", exc)
 
-    def get_latest_readings(self, device_ids: list[str] | None = None) -> list[dict[str, Any]]:
+    def get_latest_readings(
+        self, device_ids: list[str] | None = None
+    ) -> list[dict[str, Any]]:
         """查询每个设备最新一条传感器读数"""
         if not self._query_api:
             return []
@@ -132,28 +136,34 @@ class InfluxDBService:
                 ids = " OR ".join([f'r["device_id"] == "{did}"' for did in device_ids])
                 device_filter = f"|> filter(fn: (r) => {ids})"
 
-            query = f'''
+            query = f"""
             from(bucket: "{self._bucket}")
               |> range(start: -1h)
               |> filter(fn: (r) => r["_measurement"] == "sensor_readings")
               {device_filter}
               |> last()
               |> pivot(rowKey: ["device_id", "device_code"], columnKey: ["_field"], valueColumn: "_value")
-            '''
+            """
             tables = self._query_api.query(query, org=self._org)
             results = []
             for table in tables:
                 for record in table.records:
-                    results.append({
-                        "device_id": record.values.get("device_id", ""),
-                        "device_code": record.values.get("device_code", ""),
-                        "water_level_mm": record.values.get("water_level_mm", 0),
-                        "flow_rate_m3h": record.values.get("flow_rate_m3h", 0),
-                        "temperature_c": record.values.get("temperature_c", 0),
-                        "battery_level": record.values.get("battery_level", 0),
-                        "signal_strength": record.values.get("signal_strength", 0),
-                        "timestamp": record.get_time().isoformat() if record.get_time() else "",
-                    })
+                    results.append(
+                        {
+                            "device_id": record.values.get("device_id", ""),
+                            "device_code": record.values.get("device_code", ""),
+                            "water_level_mm": record.values.get("water_level_mm", 0),
+                            "flow_rate_m3h": record.values.get("flow_rate_m3h", 0),
+                            "temperature_c": record.values.get("temperature_c", 0),
+                            "battery_level": record.values.get("battery_level", 0),
+                            "signal_strength": record.values.get("signal_strength", 0),
+                            "timestamp": (
+                                record.get_time().isoformat()
+                                if record.get_time()
+                                else ""
+                            ),
+                        }
+                    )
             return results
         except Exception as exc:
             logger.error("InfluxDB 查询最新数据失败: %s", exc)
@@ -169,7 +179,7 @@ class InfluxDBService:
         if not self._query_api:
             return []
         try:
-            query = f'''
+            query = f"""
             from(bucket: "{self._bucket}")
               |> range(start: -{hours}h)
               |> filter(fn: (r) => r["_measurement"] == "sensor_readings")
@@ -177,16 +187,26 @@ class InfluxDBService:
               |> filter(fn: (r) => r["_field"] == "water_level_mm" or r["_field"] == "flow_rate_m3h")
               |> aggregateWindow(every: {interval_minutes}m, fn: mean, createEmpty: false)
               |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
-            '''
+            """
             tables = self._query_api.query(query, org=self._org)
             results = []
             for table in tables:
                 for record in table.records:
-                    results.append({
-                        "time": record.get_time().isoformat() if record.get_time() else "",
-                        "water_level_mm": round(record.values.get("water_level_mm", 0), 1),
-                        "flow_rate_m3h": round(record.values.get("flow_rate_m3h", 0), 1),
-                    })
+                    results.append(
+                        {
+                            "time": (
+                                record.get_time().isoformat()
+                                if record.get_time()
+                                else ""
+                            ),
+                            "water_level_mm": round(
+                                record.values.get("water_level_mm", 0), 1
+                            ),
+                            "flow_rate_m3h": round(
+                                record.values.get("flow_rate_m3h", 0), 1
+                            ),
+                        }
+                    )
             return results
         except Exception as exc:
             logger.error("InfluxDB 查询历史数据失败: %s", exc)
