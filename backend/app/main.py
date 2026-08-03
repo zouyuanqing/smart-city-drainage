@@ -12,8 +12,7 @@ Licensed under the Apache License, Version 2.0
 
 from __future__ import annotations
 
-# 强制 stdout 使用 UTF-8 编码 (Windows 兼容)
-import io
+# 强制 stdout 使用 UTF-8 编码
 import logging
 import sys
 import uuid
@@ -40,10 +39,6 @@ from app.services.stream_service import stream_service
 # ============================================================
 # 日志配置
 # ============================================================
-
-
-if hasattr(sys.stdout, "buffer"):
-    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
 
 
 def setup_logging():

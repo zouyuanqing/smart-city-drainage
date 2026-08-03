@@ -38,9 +38,7 @@ from app.core.security import (
 )
 from app.models.db_models import Alert as AlertModel
 from app.models.db_models import Device as DeviceModel
-from app.models.db_models import (
-    RoleEnum,
-)
+from app.models.db_models import RoleEnum
 from app.models.db_models import User as UserModel
 from app.schemas.schemas import (
     AlertAcknowledge,
