@@ -1,0 +1,48 @@
+{
+  "schema": "acceptance-calibration-improvement-v1",
+  "fixture_role": "blocked_evidence_contract",
+  "evidence_state": "BLOCKED",
+  "is_ac5_evidence": false,
+  "blocker": "No real source-event ingest, trust-policy resolution, authenticated active binding, good-quality observations, or independent solver reports are available.",
+  "target_id": "N-ACCEPTANCE-1",
+  "event_count": 3,
+  "samples_per_event": 12,
+  "synthetic_baseline_bias_mm": 10.0,
+  "synthetic_candidate_bias_mm": 0.0,
+  "trust_level": "synthetic",
+  "source_evidence": {
+    "state": "MISSING",
+    "source_event_ids": [],
+    "source_payload_sha256": [],
+    "adapter_version": null,
+    "trust_policy_id": null,
+    "trust_policy_version": null,
+    "trust_policy_sha256": null,
+    "auth_verified": false,
+    "binding_verified": false,
+    "quality": "missing"
+  },
+  "split_manifest": {
+    "schema": "calibration-split-v1",
+    "evaluation_split": "validation",
+    "event_ids": ["synthetic-event-0", "synthetic-event-1", "synthetic-event-2"],
+    "is_frozen_evidence": false
+  },
+  "provenance": {
+    "network_revision_id": null,
+    "rainfall_scenario_id": null,
+    "solver_id": null,
+    "solver_version": null,
+    "engine_sha256": null,
+    "observation_dataset_sha256": null,
+    "baseline_parameter_sha256": null,
+    "calibrated_parameter_sha256": null,
+    "evaluation_code_sha256": null,
+    "report_artifact_sha256": null
+  },
+  "thresholds": {
+    "minimum_nse_delta": 0.05,
+    "maximum_rmse_ratio": 0.95,
+    "maximum_peak_error_ratio": 1.1
+  }
+}

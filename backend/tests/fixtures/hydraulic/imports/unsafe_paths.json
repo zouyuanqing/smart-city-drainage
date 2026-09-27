@@ -1,0 +1,8 @@
+[
+  "TS1 FILE C:\\Users\\outside.dat",
+  "TS1 FILE C:secrets.txt",
+  "TS1 FILE ../secrets.txt",
+  "TS1 FILE relative.txt:stream",
+  "TS1 FILE https://example.invalid/rain.dat",
+  "TS1 FILE \\\\server\\share\\rain.dat"
+]

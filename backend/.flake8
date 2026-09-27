@@ -1,4 +1,13 @@
+# Canonical flake8 configuration for the backend package.
+#
+# Keep in sync with the workspace-root .flake8, which flake8 reads when the lint
+# gate runs from the workspace root instead of from backend/.
+#
+# E501 used to be listed in extend-ignore, which made `max-line-length` dead
+# configuration: nothing enforced the 88-column budget that
+# pyproject.toml's `[tool.black] line-length = 88` defines. E501 is now active
+# and the source is within budget.
 [flake8]
 max-line-length = 88
-extend-ignore = E203, E501, W503
+extend-ignore = E203, W503
 exclude = .git,__pycache__,alembic/versions,venv

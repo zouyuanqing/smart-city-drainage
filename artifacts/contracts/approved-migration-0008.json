@@ -1,0 +1,94 @@
+{
+  "approval": {
+    "approved_at": "2026-09-27",
+    "basis": "Cross-owner approval that 0004-0008 are additive and complete the eight /readyz tables (ab_comparisons, forecast_alert_windows, network_imports, network_validation_issues, observation_ingest_events, observation_samples, observation_trust_policies, validation_runs) that revisions 0001-0003 never declared. The chain stays linear with a single head at 0008_hydraulic_retention_seed per contract §13.2; 0001, 0002, and 0003 are left byte-identical, each new revision is profile-independent DDL, and every revision re-stamps hydraulic.schema_metadata.alembic_revision so the immutable profile value keeps mirroring the declared head. A live upgrade -> downgrade -> upgrade cycle passed on both the portable and postgis profiles.",
+    "owner": "hydraulic-schema",
+    "state": "APPROVED_POST_MIGRATION"
+  },
+  "head_revision": "0008_hydraulic_retention_seed",
+  "migrations": [
+    {
+      "base_sha256": "80012276f1d1503f47057a9ee7bbd02de940283c5c12fa9a8db213e64d4e5cfd",
+      "base_state": "PRESENT",
+      "change": "PRESERVED_BASE",
+      "down_revision": null,
+      "live_sha256": "cd3516a92dbac312c3a661b17a6664f867847d2b239cdb1d0c8f11d9a1b6c8bb",
+      "path": "backend/alembic/versions/0001_initial.py",
+      "revision": "0001_initial"
+    },
+    {
+      "base_sha256": null,
+      "base_state": "ABSENT",
+      "change": "ADDED_AFTER_R0",
+      "down_revision": "0001_initial",
+      "live_sha256": "3c2f6539f84eedd324fd80aa1ff1b5e6c5b9f869e39d495dda3276295fbc0003",
+      "path": "backend/alembic/versions/0002_hydraulic_schema.py",
+      "revision": "0002_hydraulic_schema"
+    },
+    {
+      "base_sha256": null,
+      "base_state": "ABSENT",
+      "change": "ADDED_AFTER_R0",
+      "down_revision": "0002_hydraulic_schema",
+      "live_sha256": "8ccc00d6634c9355f21e623d196eb3ea3700207de30e0a37c3b077bf844efb2b",
+      "path": "backend/alembic/versions/0003_hydraulic_schema_gap.py",
+      "revision": "0003_hydraulic_schema_gap"
+    },
+    {
+      "base_sha256": null,
+      "base_state": "ABSENT",
+      "change": "ADDED_AFTER_R0",
+      "down_revision": "0003_hydraulic_schema_gap",
+      "live_sha256": "5c8f434368dc222519acd098b0895a1eba67b185728dc702d84074c9324ba074",
+      "path": "backend/alembic/versions/0004_hydraulic_imports.py",
+      "revision": "0004_hydraulic_imports"
+    },
+    {
+      "base_sha256": null,
+      "base_state": "ABSENT",
+      "change": "ADDED_AFTER_R0",
+      "down_revision": "0004_hydraulic_imports",
+      "live_sha256": "9d8a56d73c51371542e211df9db35e20fd82d074aa285b92eede703e2213bc1c",
+      "path": "backend/alembic/versions/0005_hydraulic_observations.py",
+      "revision": "0005_hydraulic_observations"
+    },
+    {
+      "base_sha256": null,
+      "base_state": "ABSENT",
+      "change": "ADDED_AFTER_R0",
+      "down_revision": "0005_hydraulic_observations",
+      "live_sha256": "8e8feeb8f1d27536653bd6f03ca75db855e02fbcc08c28287f57ad7f8e8eeeae",
+      "path": "backend/alembic/versions/0006_hydraulic_alert_windows.py",
+      "revision": "0006_hydraulic_alert_windows"
+    },
+    {
+      "base_sha256": null,
+      "base_state": "ABSENT",
+      "change": "ADDED_AFTER_R0",
+      "down_revision": "0006_hydraulic_alert_windows",
+      "live_sha256": "ff97108c8ce8405290c5c91be18c377999329764c761a0e4ced32deb3d99782b",
+      "path": "backend/alembic/versions/0007_hydraulic_ab_comparisons.py",
+      "revision": "0007_hydraulic_ab_comparisons"
+    },
+    {
+      "base_sha256": null,
+      "base_state": "ABSENT",
+      "change": "ADDED_AFTER_R0",
+      "down_revision": "0007_hydraulic_ab_comparisons",
+      "live_sha256": "775d61770c8d4091a74f55924d10e96aad57c628fc5306dfe5b98c2a8a03a49b",
+      "path": "backend/alembic/versions/0008_hydraulic_retention_seed.py",
+      "revision": "0008_hydraulic_retention_seed"
+    }
+  ],
+  "owner": "hydraulic-schema",
+  "phase": "post-migration",
+  "r0_review": {
+    "artifact": "artifacts/contracts/v3-independent-review.json",
+    "artifact_sha256": "90106f147bc7709d929ba678ed96c45d4d4745533654f61cbb84f822cc64bf9f",
+    "base_commit": "ca99e0485fb12fbecbd565e79d81f745f8d4a748",
+    "document_bundle_sha256": "5b9b2e3f54bb910706a2d130ff564ebaf3e2292c9db3ace449b62cd5006fa55d",
+    "verdict": "R0_DESIGN_PASS"
+  },
+  "schema": "approved-migration-v1",
+  "status": "APPROVED_POST_MIGRATION"
+}

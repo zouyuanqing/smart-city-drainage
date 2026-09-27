@@ -15,25 +15,41 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg libsm6 libxext6 libgl1 libglib2.0-0 \
     libavcodec-dev libavformat-dev libavdevice-dev \
     libswscale-dev libavutil-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid 10001 scn \
+    && useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin scn
 
 # Create virtual environment
 RUN python3.11 -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies from the hash-locked GPU profile
+COPY requirements-py311-gpu.lock .
+RUN pip install --no-cache-dir --require-hashes -r requirements-py311-gpu.lock \
+    && pip check
 
 # Copy application
-COPY . .
+COPY --chown=scn:scn . .
 
-# Create media directories
-RUN mkdir -p /app/media/hls /app/media/screenshots
+# Create writable runtime directories before dropping root. The
+# /var/lib/smart-drainage roots are the workers' attempt sandbox, published
+# result, and network-job staging volumes; Compose backs them with fresh named
+# volumes, and a named volume whose mount point is absent from the image is
+# created root-owned, which would fail a worker's fail-closed
+# `workspace_not_writable` / `staging_root_not_writable` startup check under
+# `user: "10001:10001"`.
+RUN mkdir -p /app/logs /app/media/hls /app/media/screenshots /app/models/weights \
+        /var/lib/smart-drainage/sandbox /var/lib/smart-drainage/results \
+        /var/lib/smart-drainage/import \
+    && chown -R scn:scn /app/logs /app/media /app/models \
+        /var/lib/smart-drainage
 
-# Health check
+USER 10001:10001
+
+# Image-level liveness only; Compose supplies the dependency-aware readiness
+# check for services that participate in the deployment topology.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import httpx; httpx.get('http://localhost:8000/health')"
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
 
 EXPOSE 8000
 

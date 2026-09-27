@@ -1,0 +1,24 @@
+{
+  "schema": "acceptance-forecast-suppression-v1",
+  "fixture_role": "in_memory_service_characterization",
+  "is_ac4_evidence": false,
+  "missing_evidence": [
+    "nowcast producer timestamps and 30-cycle SLO",
+    "durable alert and event-outbox transactions",
+    "concurrent business-event uniqueness",
+    "authenticated canonical SSE replay across workers and restart"
+  ],
+  "network_id": "00000000-0000-4000-8000-000000000001",
+  "rule_id": "00000000-0000-4000-8000-000000000002",
+  "calibration_id": "00000000-0000-4000-8000-000000000003",
+  "simulation_id": "00000000-0000-4000-8000-000000000004",
+  "revision_id": "00000000-0000-4000-8000-000000000005",
+  "manifest_id": "00000000-0000-4000-8000-000000000006",
+  "target_id": "00000000-0000-4000-8000-000000000007",
+  "issued_at": "2026-09-25T10:00:00Z",
+  "expected_at": "2026-09-25T10:35:00Z",
+  "terminal_after_minutes": 5,
+  "cooldown_minutes": 30,
+  "inside_cooldown_seconds": 1799,
+  "boundary_offset_minutes": 30
+}

@@ -1,0 +1,18 @@
+{
+  "alert_type": "flood_forecast",
+  "clear_debounce_minutes": 10,
+  "clear_value": 0.1,
+  "expiry_grace_minutes": 15,
+  "metric": "water_depth_m",
+  "no_forecast_confirmations": 2,
+  "operator": ">=",
+  "refresh_expected_shift_steps": 2,
+  "refresh_peak_delta": 0.1,
+  "refresh_confidence_delta": 0.15,
+  "refresh_risk_delta": 0.05,
+  "risk_scale_m": 0.3,
+  "schema_version": 1,
+  "threshold_unit": "m",
+  "threshold_value": 0.15,
+  "version": "v1"
+}

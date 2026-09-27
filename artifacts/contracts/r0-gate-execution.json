@@ -1,0 +1,152 @@
+{
+  "checks": [
+    {
+      "command": "C:\\Python314\\Scripts\\uv.EXE run --isolated --no-project --python 3.11 --with-requirements backend/requirements-py311.lock python -B scripts/check_migration_gate.py --review-artifact artifacts/contracts/v3-independent-review.json --base-ref ca99e0485fb12fbecbd565e79d81f745f8d4a748 --versions-dir backend/alembic/versions",
+      "cwd": "C:\\Users\\zyq\\Documents\\opencode-pn\\goal测试\\smart-city-drainage",
+      "exit_code": 0,
+      "name": "migration_gate",
+      "result": "PASS",
+      "script": "scripts/check_migration_gate.py",
+      "stderr": "",
+      "stdout": "{\"base_commit\": \"ca99e0485fb12fbecbd565e79d81f745f8d4a748\", \"document_bundle_sha256\": \"5b9b2e3f54bb910706a2d130ff564ebaf3e2292c9db3ace449b62cd5006fa55d\", \"documents\": [{\"path\": \"docs/hydraulic-twin/IMPLEMENTATION_CONTRACT.md\", \"sha256\": \"5fa5f57096e5ff7ca44d85797e8476c7f329525f582f2e039e6c882c19558141\"}, {\"path\": \"docs/hydraulic-twin/PRD_SUPPLEMENT.md\", \"sha256\": \"120b644023d14d42f54d48bb068361964afc5dd98343434d92518449ed741551\"}, {\"path\": \"docs/hydraulic-twin/SOURCE_PRD.md\", \"sha256\": \"11e56e68a68017b84b5ae577dede8a74f6217d4a7877f5e358a18f14e66807ee\"}], \"review_report\": \"docs/hydraulic-twin/reviews/v3-final-review-round-1.md\", \"review_report_sha256\": \"93f6e76ee0ff34581672d23371fc170a2c2e4a0e5482a281f078b166a65afe29\", \"status\": \"PASS\", \"verdict\": \"R0_DESIGN_PASS\", \"versions_changed\": [], \"versions_dir\": \"backend/alembic/versions\"}\nMIGRATION_GATE=PASS\n"
+    },
+    {
+      "command": "C:\\Python314\\Scripts\\uv.EXE run --isolated --no-project --python 3.11 --with-requirements backend/requirements-py311.lock python -B scripts/check_dependency_handoff.py --handoff artifacts/contracts/dependency-config-handoff.json --expected backend/tests/fixtures/hydraulic/contracts/dependency-handoff-v1.json --python-version-file .python-version --node-version-file frontend/.node-version --npmrc frontend/.npmrc --package frontend/package.json --lock frontend/package-lock.json --env-example .env.example",
+      "cwd": "C:\\Users\\zyq\\Documents\\opencode-pn\\goal测试\\smart-city-drainage",
+      "exit_code": 0,
+      "name": "dependency_handoff",
+      "result": "PASS_WITH_DEFERRED",
+      "script": "scripts/check_dependency_handoff.py",
+      "stderr": "",
+      "stdout": "{\"auth_ids\": [\"DEP-AUTH-01\", \"DEP-AUTH-02\", \"DEP-AUTH-03\", \"DEP-AUTH-04\", \"DEP-AUTH-05\", \"DEP-AUTH-06\", \"DEP-AUTH-07\", \"DEP-AUTH-08\", \"DEP-AUTH-09\", \"DEP-AUTH-10\", \"DEP-AUTH-11\", \"DEP-AUTH-12\", \"DEP-AUTH-13\"], \"base_commit\": \"ca99e0485fb12fbecbd565e79d81f745f8d4a748\", \"deferred\": [\"frontend-performance-entrypoint\", \"frontend-target-runtime-evidence\"], \"g0_g5_blocked_by_deferred\": true, \"r0_review\": {\"artifact\": \"artifacts/contracts/v3-independent-review.json\", \"document_bundle_sha256\": \"5b9b2e3f54bb910706a2d130ff564ebaf3e2292c9db3ace449b62cd5006fa55d\", \"verdict\": \"R0_DESIGN_PASS\"}, \"settings_counts\": {\"authorized\": 54, \"preserve_only\": 47}, \"status\": \"READY_WITH_DEFERRED\", \"versions\": {\"lockfileVersion\": 3, \"node\": \"18.20.8\", \"npm\": \"10.8.2\", \"packageManager\": \"npm@10.8.2\", \"python\": \"3.11\", \"rollupOverride\": \"4.22.0\"}}\nDEPENDENCY_HANDOFF=PASS_WITH_DEFERRED\nDEFERRED=frontend-performance-entrypoint\nDEFERRED=frontend-target-runtime-evidence\nG0_G5_BLOCKED_BY_DEFERRED=true\n"
+    }
+  ],
+  "executed_at": "2026-09-24T21:50:03+08:00",
+  "execution_mode": "repository-root direct checker entrypoints",
+  "handoff_summary": {
+    "artifact": "artifacts/contracts/dependency-config-handoff.json",
+    "artifact_sha256": "6b7ff01dd7e5426dbaa22b42826a15fc30a10d35d640974f5a66b52263db4e85",
+    "auth_ids": [
+      "DEP-AUTH-01",
+      "DEP-AUTH-02",
+      "DEP-AUTH-03",
+      "DEP-AUTH-04",
+      "DEP-AUTH-05",
+      "DEP-AUTH-06",
+      "DEP-AUTH-07",
+      "DEP-AUTH-08",
+      "DEP-AUTH-09",
+      "DEP-AUTH-10",
+      "DEP-AUTH-11",
+      "DEP-AUTH-12",
+      "DEP-AUTH-13"
+    ],
+    "base_commit": "ca99e0485fb12fbecbd565e79d81f745f8d4a748",
+    "deferred": [
+      {
+        "blocks": [
+          "G0",
+          "G5"
+        ],
+        "id": "frontend-performance-entrypoint",
+        "owner": "frontend-acceptance",
+        "path": "frontend/package.json#scripts.test:perf:twin",
+        "reason": "The frozen contract reserves the executable performance harness and evidence for the post-integration frontend-acceptance owner; dependency-config must not create a fake script.",
+        "required_command": "node performance/run-twin-map.mjs",
+        "state": "DEFERRED"
+      },
+      {
+        "blocks": [
+          "G0"
+        ],
+        "id": "frontend-target-runtime-evidence",
+        "owner": "ci-quality-bootstrap",
+        "path": "artifacts/hydraulic/<RUN_ID>/g0",
+        "reason": "This read-only handoff checker validates the exact version declarations; target-runtime evidence belongs to the later G0 execution owner.",
+        "required_command": "node --version == v18.20.8; npm --version == 10.8.2",
+        "state": "DEFERRED"
+      }
+    ],
+    "expected_fixture": {
+      "path": "backend/tests/fixtures/hydraulic/contracts/dependency-handoff-v1.json",
+      "sha256": "6cf8412697444fba1d3029abd797d028f0db4a5a34cefda3d22e1976653839ce"
+    },
+    "file_entry_count": 16,
+    "g0_g5_blocked_by_deferred": true,
+    "phase": "post-handoff",
+    "schema": "dependency-config-handoff-v1",
+    "settings_counts": {
+      "authorized": 54,
+      "preserve_only": 47
+    },
+    "status": "READY_WITH_DEFERRED",
+    "versions": {
+      "lockfileVersion": 3,
+      "node": "18.20.8",
+      "npm": "10.8.2",
+      "packageManager": "npm@10.8.2",
+      "python": "3.11",
+      "rollupOverride": "4.22.0"
+    }
+  },
+  "not_run": [
+    "database/schema startup",
+    "Alembic upgrade/downgrade",
+    "G0-G6",
+    "AC-1-AC-8",
+    "Vitest",
+    "npm ci",
+    "performance harness",
+    "Docker"
+  ],
+  "overall_status": "PASS_WITH_DEFERRED",
+  "python_requested": "3.11",
+  "repository_root": "C:\\Users\\zyq\\Documents\\opencode-pn\\goal测试\\smart-city-drainage",
+  "review_bundle": {
+    "artifact": "artifacts/contracts/v3-independent-review.json",
+    "artifact_sha256": "90106f147bc7709d929ba678ed96c45d4d4745533654f61cbb84f822cc64bf9f",
+    "base_commit": "ca99e0485fb12fbecbd565e79d81f745f8d4a748",
+    "document_bundle_sha256": "5b9b2e3f54bb910706a2d130ff564ebaf3e2292c9db3ace449b62cd5006fa55d",
+    "documents": [
+      {
+        "path": "docs/hydraulic-twin/IMPLEMENTATION_CONTRACT.md",
+        "sha256": "5fa5f57096e5ff7ca44d85797e8476c7f329525f582f2e039e6c882c19558141"
+      },
+      {
+        "path": "docs/hydraulic-twin/PRD_SUPPLEMENT.md",
+        "sha256": "120b644023d14d42f54d48bb068361964afc5dd98343434d92518449ed741551"
+      },
+      {
+        "path": "docs/hydraulic-twin/SOURCE_PRD.md",
+        "sha256": "11e56e68a68017b84b5ae577dede8a74f6217d4a7877f5e358a18f14e66807ee"
+      }
+    ],
+    "review_report": "docs/hydraulic-twin/reviews/v3-final-review-round-1.md",
+    "review_report_sha256": "93f6e76ee0ff34581672d23371fc170a2c2e4a0e5482a281f078b166a65afe29",
+    "reviewer": "dynamic-workflow v3-final-review-1",
+    "schema": "v3-independent-review-v1",
+    "verdict": "R0_DESIGN_PASS"
+  },
+  "schema": "r0-gate-execution-v1",
+  "superseded_diagnostic_attempt": {
+    "command": "python -B scripts/check_dependency_handoff.py --handoff artifacts/contracts/dependency-config-handoff.json --expected backend/tests/fixtures/hydraulic/contracts/dependency-handoff-v1.json --python-version-file .python-version --node-version-file frontend/.node-version --npmrc frontend/.npmrc --package frontend/package.json --lock frontend/package-lock.json --env-example .env.example",
+    "cwd": "C:\\Users\\zyq\\Documents\\opencode-pn\\goal测试\\smart-city-drainage",
+    "exit_code": 1,
+    "name": "dependency_handoff_nested_python_without_uv_environment",
+    "qualifies_as_gate_execution": false,
+    "reason": "Nested python did not inherit uv ephemeral site-packages (ModuleNotFoundError: pydantic); superseded by the direct uv command recorded in checks."
+  },
+  "verified_inputs": {
+    "after": {
+      "expected_fixture_sha256": "6cf8412697444fba1d3029abd797d028f0db4a5a34cefda3d22e1976653839ce",
+      "handoff_artifact_sha256": "6b7ff01dd7e5426dbaa22b42826a15fc30a10d35d640974f5a66b52263db4e85",
+      "review_artifact_sha256": "90106f147bc7709d929ba678ed96c45d4d4745533654f61cbb84f822cc64bf9f"
+    },
+    "before": {
+      "expected_fixture_sha256": "6cf8412697444fba1d3029abd797d028f0db4a5a34cefda3d22e1976653839ce",
+      "handoff_artifact_sha256": "6b7ff01dd7e5426dbaa22b42826a15fc30a10d35d640974f5a66b52263db4e85",
+      "review_artifact_sha256": "90106f147bc7709d929ba678ed96c45d4d4745533654f61cbb84f822cc64bf9f"
+    },
+    "unchanged": true
+  }
+}

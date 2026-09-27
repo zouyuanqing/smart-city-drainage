@@ -1,0 +1,1 @@
+{"acceptance_counts":{"catchments":1000,"nodes":5000,"pipes":10000},"reporting":{"duration_minutes":1440,"frame_count":289,"interval_minutes":5,"start":"2026-01-01T00:00:00Z"},"schema":"hydraulic-solver-benchmark-target-v1","target_metrics":{"max_mass_balance_relative_residual":0.0001,"max_worker_wall_time_seconds":180.0}}

@@ -2,35 +2,55 @@
  * 根组件 — 路由与全局 Layout
  */
 
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppLayout } from '@components/layout/AppLayout'
-import { ErrorBoundary } from '@components/common'
-import { Dashboard } from '@pages/Dashboard'
+import { ErrorBoundary, Loading } from '@components/common'
 import { LandingPage } from '@pages/LandingPage'
 import { LoginPage } from '@pages/LoginPage'
-import { MapView } from '@pages/MapView'
-import { VideoMonitor } from '@pages/VideoMonitor'
-import { AlertCenter } from '@pages/AlertCenter'
-import { SettingsPage } from '@pages/SettingsPage'
-import { useEffect } from 'react'
+import { ProtectedRoute } from '@/auth/RouteGuard'
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts'
 
-// 路由守卫: 未登录重定向
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('scn_access_token')
-  if (!token) {
-    return <Navigate to="/login" replace />
-  }
-  return <>{children}</>
+const Dashboard = lazy(() =>
+  import('@/pages/Dashboard').then((module) => ({ default: module.Dashboard }))
+)
+const MapView = lazy(() =>
+  import('@/pages/MapView').then((module) => ({ default: module.MapView }))
+)
+const VideoMonitor = lazy(() =>
+  import('@/pages/VideoMonitor').then((module) => ({ default: module.VideoMonitor }))
+)
+const AlertCenter = lazy(() =>
+  import('@/pages/AlertCenter').then((module) => ({ default: module.AlertCenter }))
+)
+const SettingsPage = lazy(() =>
+  import('@/pages/SettingsPage').then((module) => ({ default: module.SettingsPage }))
+)
+const SimulationPage = lazy(() => import('@/pages/SimulationPage'))
+
+function AuthenticatedPage({
+  children,
+  requiredRole,
+}: {
+  children: React.ReactNode
+  requiredRole?: 'viewer' | 'operator' | 'admin'
+}) {
+  return (
+    <ProtectedRoute requiredRole={requiredRole}>
+      <AppLayout>
+        <ErrorBoundary>
+          <Suspense fallback={<Loading tip="Loading module…" />}>{children}</Suspense>
+        </ErrorBoundary>
+      </AppLayout>
+    </ProtectedRoute>
+  )
 }
 
 export default function App() {
-  // 全局暗黑模式
   useEffect(() => {
     document.documentElement.classList.add('dark')
   }, [])
 
-  // 全局键盘快捷键
   useKeyboardShortcuts()
 
   return (
@@ -40,61 +60,49 @@ export default function App() {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
-            <AppLayout>
-              <ErrorBoundary>
-                <Dashboard />
-              </ErrorBoundary>
-            </AppLayout>
-          </ProtectedRoute>
+          <AuthenticatedPage>
+            <Dashboard />
+          </AuthenticatedPage>
         }
       />
       <Route
         path="/map"
         element={
-          <ProtectedRoute>
-            <AppLayout>
-              <ErrorBoundary>
-                <MapView />
-              </ErrorBoundary>
-            </AppLayout>
-          </ProtectedRoute>
+          <AuthenticatedPage>
+            <MapView />
+          </AuthenticatedPage>
+        }
+      />
+      <Route
+        path="/simulation"
+        element={
+          <AuthenticatedPage>
+            <SimulationPage />
+          </AuthenticatedPage>
         }
       />
       <Route
         path="/video"
         element={
-          <ProtectedRoute>
-            <AppLayout>
-              <ErrorBoundary>
-                <VideoMonitor />
-              </ErrorBoundary>
-            </AppLayout>
-          </ProtectedRoute>
+          <AuthenticatedPage requiredRole="operator">
+            <VideoMonitor />
+          </AuthenticatedPage>
         }
       />
       <Route
         path="/alerts"
         element={
-          <ProtectedRoute>
-            <AppLayout>
-              <ErrorBoundary>
-                <AlertCenter />
-              </ErrorBoundary>
-            </AppLayout>
-          </ProtectedRoute>
+          <AuthenticatedPage requiredRole="operator">
+            <AlertCenter />
+          </AuthenticatedPage>
         }
       />
       <Route
         path="/settings"
         element={
-          <ProtectedRoute>
-            <AppLayout>
-              <ErrorBoundary>
-                <SettingsPage />
-              </ErrorBoundary>
-            </AppLayout>
-          </ProtectedRoute>
+          <AuthenticatedPage requiredRole="admin">
+            <SettingsPage />
+          </AuthenticatedPage>
         }
       />
       <Route path="*" element={<Navigate to="/" replace />} />

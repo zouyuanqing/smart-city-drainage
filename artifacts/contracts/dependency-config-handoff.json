@@ -1,0 +1,1591 @@
+{
+  "approved_migration": {
+    "artifact": "artifacts/contracts/approved-migration-0008.json",
+    "head_revision": "0008_hydraulic_retention_seed",
+    "owner": "hydraulic-schema",
+    "sha256": "99bf55b386bbc2f8f11034a2469d1e742991da78faf120e27d7d580e80cbd9e3",
+    "status": "APPROVED_POST_MIGRATION"
+  },
+  "auth_ids": [
+    "DEP-AUTH-01",
+    "DEP-AUTH-02",
+    "DEP-AUTH-03",
+    "DEP-AUTH-04",
+    "DEP-AUTH-05",
+    "DEP-AUTH-06",
+    "DEP-AUTH-07",
+    "DEP-AUTH-08",
+    "DEP-AUTH-09",
+    "DEP-AUTH-10",
+    "DEP-AUTH-11",
+    "DEP-AUTH-12",
+    "DEP-AUTH-13"
+  ],
+  "base_commit": "ca99e0485fb12fbecbd565e79d81f745f8d4a748",
+  "deferred": [
+    {
+      "blocks": [
+        "G0"
+      ],
+      "id": "frontend-target-runtime-evidence",
+      "owner": "ci-quality-bootstrap",
+      "path": "artifacts/hydraulic/<RUN_ID>/g0",
+      "reason": "This read-only handoff checker validates the exact version declarations; target-runtime evidence belongs to the later G0 execution owner.",
+      "required_command": "node --version == v18.20.8; npm --version == 10.8.2",
+      "state": "DEFERRED"
+    }
+  ],
+  "effective_owners": {
+    "DEP-AUTH-01": "integration-config",
+    "DEP-AUTH-02": "integration-config",
+    "DEP-AUTH-03": "integration-config",
+    "DEP-AUTH-04": "integration-config",
+    "DEP-AUTH-05": "integration-config",
+    "DEP-AUTH-06": "integration-config",
+    "DEP-AUTH-07": "dependency-config",
+    "DEP-AUTH-08": "dependency-config",
+    "DEP-AUTH-09": "integration-config",
+    "DEP-AUTH-10": "integration-config",
+    "DEP-AUTH-11": "integration-config",
+    "DEP-AUTH-12": "integration-config",
+    "DEP-AUTH-13": "dependency-config"
+  },
+  "expected_fixture": {
+    "path": "backend/tests/fixtures/hydraulic/contracts/dependency-handoff-v1.json",
+    "sha256": "3a739495e47d007cef00e877d03f412d9451c4d4824c1fc2c145df75b40cca39"
+  },
+  "files": {
+    "DEP-AUTH-01": {
+      "paths": [
+        {
+          "base_sha256": null,
+          "base_state": "ABSENT",
+          "path": ".python-version",
+          "result_sha256": "49a506dd32096b010d75205acf3430c9ae6c40351888129499e5a5e487126c93"
+        }
+      ]
+    },
+    "DEP-AUTH-02": {
+      "paths": [
+        {
+          "base_sha256": "a53f0eb45601c20bb50b12e4e43e8a5231f2c680baf1d767bcf07c329be1324a",
+          "base_state": "PRESENT",
+          "path": ".env.example",
+          "result_sha256": "7ad63b7df42f8622225c64bf0d5af52813511a327a9009bd17040279fcb70e78"
+        }
+      ]
+    },
+    "DEP-AUTH-03": {
+      "paths": [
+        {
+          "base_sha256": "cd65149d9edb6431e52d9b5180093d4171e3279cf307128a1696c85b6c4547e8",
+          "base_state": "PRESENT",
+          "path": "backend/requirements-cpu.txt",
+          "result_sha256": "5004f977a1aeadfbc69be3fdea1a37926c7fd36c50b917a24ebbccbd66b7ae30"
+        },
+        {
+          "base_sha256": null,
+          "base_state": "ABSENT",
+          "path": "backend/requirements-hydraulic.txt",
+          "result_sha256": "b491b3886c9729f44f89124df5492c3aeb4ab909562bdb3482e9301a3dfcb2f7"
+        },
+        {
+          "base_sha256": "af68a5a35a4d2906f7d315733e929885ed45fd3f45cb3c45f3e3d2b7d1aea8e7",
+          "base_state": "PRESENT",
+          "path": "backend/requirements.txt",
+          "result_sha256": "2692b2f58cf79fa9fe919d786061a0e5f0b4853a1d5179490fa3c5fbb65ffd81"
+        }
+      ]
+    },
+    "DEP-AUTH-04": {
+      "paths": [
+        {
+          "base_sha256": null,
+          "base_state": "ABSENT",
+          "path": "backend/requirements-hydraulic-py311.lock",
+          "result_sha256": "f8c8b4cbc4fa96a9f457409cccac9befe0276a1f438acbce2dfba72dfde85943"
+        },
+        {
+          "base_sha256": null,
+          "base_state": "ABSENT",
+          "path": "backend/requirements-py311-gpu.lock",
+          "result_sha256": "f6a53a24a2da18ed639d530f1a9e8268e799859f3815e4c55d6919db05458a87"
+        },
+        {
+          "base_sha256": null,
+          "base_state": "ABSENT",
+          "path": "backend/requirements-py311.lock",
+          "result_sha256": "c904412c1be0de36224c83371fcc353e2e107c8e1abe067cb8b74a8f5c4ae293"
+        }
+      ]
+    },
+    "DEP-AUTH-05": {
+      "paths": [
+        {
+          "base_sha256": "f1df5c70a554d3eec5bdf336c615dcab6f019871a2677d15eee4383ac33bf5d1",
+          "base_state": "PRESENT",
+          "path": "backend/pyproject.toml",
+          "result_sha256": "0a723ecb3224d33aa9f6024cbd16ac33d4652f5bcff86b3b209b3716ba4cb17e"
+        }
+      ]
+    },
+    "DEP-AUTH-06": {
+      "paths": [
+        {
+          "base_sha256": "5260a405410170310101f453941517d37b4f96425fe518536d283743e72a7b19",
+          "base_state": "PRESENT",
+          "path": "backend/app/core/config.py",
+          "result_sha256": "d6f7142af0d4d4b5c90014137b9d43f9c2d63a1ceeec0a7c3fad3b17790b3cf7"
+        }
+      ]
+    },
+    "DEP-AUTH-07": {
+      "paths": [
+        {
+          "base_sha256": null,
+          "base_state": "ABSENT",
+          "path": "backend/tests/test_simulation_settings.py",
+          "result_sha256": "b66e3f2fa8ca692c780da48e2026ce9fc3ac5800d5887fba53471f55b9ed9fa6"
+        }
+      ]
+    },
+    "DEP-AUTH-08": {
+      "paths": [
+        {
+          "base_sha256": null,
+          "base_state": "ABSENT",
+          "path": "backend/tests/test_requirements_matrix.py",
+          "result_sha256": "7be5d7f5ca0ae015d09d30027987deb6690087c7a60c979f3ea296ee6181b732"
+        }
+      ]
+    },
+    "DEP-AUTH-09": {
+      "paths": [
+        {
+          "base_sha256": null,
+          "base_state": "ABSENT",
+          "path": "frontend/.node-version",
+          "result_sha256": "18b357482cfbd693d26f270d6cb47f2fdce26c9911712da6e9a018b8970647f5"
+        }
+      ]
+    },
+    "DEP-AUTH-10": {
+      "paths": [
+        {
+          "base_sha256": null,
+          "base_state": "ABSENT",
+          "path": "frontend/.npmrc",
+          "result_sha256": "1253e9d5802a9fafac561f3d83666142b50bc92ad9b86933c0732b4d4670ef3e"
+        }
+      ]
+    },
+    "DEP-AUTH-11": {
+      "paths": [
+        {
+          "base_sha256": "98d630252d2e331b4fcb93b6f874f2d6e803306e0e312749207b91a2fec914c4",
+          "base_state": "PRESENT",
+          "path": "frontend/package.json",
+          "result_sha256": "8e157c729ddce1dc799ac2687d544fae4de5b9c3b327642ebf5a34e8ccff2710"
+        }
+      ]
+    },
+    "DEP-AUTH-12": {
+      "paths": [
+        {
+          "base_sha256": "7b500d0c3e4f22883c3273c7ab0c49c859c7fa162099e8d158a0c1013ffbf7bd",
+          "base_state": "PRESENT",
+          "path": "frontend/package-lock.json",
+          "result_sha256": "802bc61acf8f4fb09e3ddc6c81fffff467a64ec14e9b35aac7187432c2d78dd1"
+        }
+      ]
+    }
+  },
+  "frontend_performance": {
+    "acceptance_scope": "PRD_G5",
+    "entrypoint": {
+      "command": "node performance/run-twin-map.mjs",
+      "path": "frontend/package.json#scripts.test:perf:twin",
+      "required_command": "node performance/run-twin-map.mjs --fixture performance/fixtures/twin-map-5k-10k-v1.json --output <RUN_ID>/g5/frontend-smoke.json --duration-seconds 60"
+    },
+    "fixture": {
+      "fixture_id": "twin-map-5k-10k-v1",
+      "path": "frontend/performance/fixtures/twin-map-5k-10k-v1.json",
+      "sha256": "cfe0ae3f724265a67351bef5bf77a2b0764d456d90d389dd1c8f35f503950bb4"
+    },
+    "report_schema": "hydraulic-frontend-performance-report-v2",
+    "runner": {
+      "path": "frontend/performance/run-twin-map.mjs",
+      "sha256": "a320d6328bbe3b8988228fb2b981b9e0545405bfefc94b9acf7619c8cd77fa4e"
+    },
+    "schema": "hydraulic-frontend-performance-browser-v1",
+    "state": "APPROVED_CONTRACT"
+  },
+  "phase": "post-handoff",
+  "r0_review": {
+    "artifact": "artifacts/contracts/v3-independent-review.json",
+    "document_bundle_sha256": "5b9b2e3f54bb910706a2d130ff564ebaf3e2292c9db3ace449b62cd5006fa55d",
+    "verdict": "R0_DESIGN_PASS"
+  },
+  "schema": "dependency-config-handoff-v1",
+  "settings": {
+    "field_count": 54,
+    "fields": [
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": false,
+        "env_example": false,
+        "invalid_cases": [],
+        "name": "AUTH_FALLBACK_ADMIN_ENABLED",
+        "type": "bool",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=1)"
+        ],
+        "default": 0.5,
+        "env_example": 0.5,
+        "invalid_cases": [
+          {
+            "environment": {
+              "COURANT_LIMIT": "1.1"
+            },
+            "error_contains": "COURANT_LIMIT"
+          }
+        ],
+        "name": "COURANT_LIMIT",
+        "type": "float",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "",
+        "env_example": "",
+        "invalid_cases": [],
+        "name": "EPA_SWMM_EXECUTABLE",
+        "type": "str",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "",
+        "env_example": "",
+        "invalid_cases": [
+          {
+            "environment": {
+              "EPA_SWMM_SHA256": "not-a-sha256"
+            },
+            "error_contains": "EPA_SWMM_SHA256"
+          }
+        ],
+        "name": "EPA_SWMM_SHA256",
+        "type": "str",
+        "validators": [
+          "EPA_SWMM_SHA256:after:validate_epa_swmm_sha256",
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "",
+        "env_example": "",
+        "invalid_cases": [
+          {
+            "environment": {
+              "EPA_SWMM_VERSION": "latest"
+            },
+            "error_contains": "EPA_SWMM_VERSION"
+          }
+        ],
+        "name": "EPA_SWMM_VERSION",
+        "type": "str",
+        "validators": [
+          "EPA_SWMM_VERSION:after:validate_epa_swmm_version",
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 30,
+        "env_example": 30,
+        "invalid_cases": [
+          {
+            "environment": {
+              "FORECAST_EVENT_WINDOW_MINUTES": "0"
+            },
+            "error_contains": "FORECAST_EVENT_WINDOW_MINUTES"
+          }
+        ],
+        "name": "FORECAST_EVENT_WINDOW_MINUTES",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 900,
+        "env_example": 900,
+        "invalid_cases": [
+          {
+            "environment": {
+              "FORECAST_FRESH_MAX_AGE_SECONDS": "0"
+            },
+            "error_contains": "FORECAST_FRESH_MAX_AGE_SECONDS"
+          }
+        ],
+        "name": "FORECAST_FRESH_MAX_AGE_SECONDS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "",
+        "env_example": "",
+        "invalid_cases": [],
+        "name": "FORECAST_POLICY_CONFIG_PATH",
+        "type": "str",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 168,
+        "env_example": 168,
+        "invalid_cases": [
+          {
+            "environment": {
+              "FORECAST_REPLAY_RETENTION_HOURS": "0"
+            },
+            "error_contains": "FORECAST_REPLAY_RETENTION_HOURS"
+          }
+        ],
+        "name": "FORECAST_REPLAY_RETENTION_HOURS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 256,
+        "env_example": 256,
+        "invalid_cases": [
+          {
+            "environment": {
+              "FORECAST_SSE_QUEUE_SIZE": "0"
+            },
+            "error_contains": "FORECAST_SSE_QUEUE_SIZE"
+          }
+        ],
+        "name": "FORECAST_SSE_QUEUE_SIZE",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "./backend/hydraulic/artifacts",
+        "env_example": "./backend/hydraulic/artifacts",
+        "invalid_cases": [],
+        "name": "HYDRAULIC_ARTIFACT_ROOT",
+        "type": "str",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "./backend/hydraulic/export",
+        "env_example": "./backend/hydraulic/export",
+        "invalid_cases": [],
+        "name": "HYDRAULIC_EXPORT_ROOT",
+        "type": "str",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "./backend/hydraulic/import",
+        "env_example": "./backend/hydraulic/import",
+        "invalid_cases": [],
+        "name": "HYDRAULIC_IMPORT_ROOT",
+        "type": "str",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "./backend/hydraulic/sandbox",
+        "env_example": "./backend/hydraulic/sandbox",
+        "invalid_cases": [],
+        "name": "HYDRAULIC_SANDBOX_ROOT",
+        "type": "str",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "0008_hydraulic_retention_seed",
+        "env_example": "0008_hydraulic_retention_seed",
+        "invalid_cases": [],
+        "name": "HYDRAULIC_SCHEMA_REVISION",
+        "type": "Literal['0008_hydraulic_retention_seed']",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "portable",
+        "env_example": "portable",
+        "invalid_cases": [
+          {
+            "environment": {
+              "HYDRAULIC_SPATIAL_BACKEND": "mysql"
+            },
+            "error_contains": "HYDRAULIC_SPATIAL_BACKEND"
+          }
+        ],
+        "name": "HYDRAULIC_SPATIAL_BACKEND",
+        "type": "Literal['postgis', 'portable']",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": [
+          "HS256",
+          "RS256"
+        ],
+        "env_example": [
+          "HS256",
+          "RS256"
+        ],
+        "invalid_cases": [
+          {
+            "environment": {
+              "JWT_ALGORITHMS": "[]"
+            },
+            "error_contains": "JWT_ALGORITHMS"
+          },
+          {
+            "environment": {
+              "JWT_ALGORITHMS": "[\"HS256\", \"none\"]"
+            },
+            "error_contains": "JWT_ALGORITHMS"
+          },
+          {
+            "environment": {
+              "JWT_ALGORITHMS": "[\"HS256\", \"HS256\"]"
+            },
+            "error_contains": "JWT_ALGORITHMS"
+          }
+        ],
+        "name": "JWT_ALGORITHMS",
+        "type": "list[str]",
+        "validators": [
+          "JWT_ALGORITHMS:after:validate_jwt_algorithms",
+          "JWT_ALGORITHMS:before:parse_jwt_algorithms",
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "",
+        "env_example": "smart-city-api",
+        "invalid_cases": [],
+        "name": "JWT_AUDIENCE",
+        "type": "str",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "",
+        "env_example": "smart-city-drainage",
+        "invalid_cases": [],
+        "name": "JWT_ISSUER",
+        "type": "str",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 20,
+        "env_example": 20,
+        "invalid_cases": [
+          {
+            "environment": {
+              "MAX_SUBSTEPS_PER_REPORT": "0"
+            },
+            "error_contains": "MAX_SUBSTEPS_PER_REPORT"
+          }
+        ],
+        "name": "MAX_SUBSTEPS_PER_REPORT",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=20971520)"
+        ],
+        "default": 20971520,
+        "env_example": 20971520,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NETWORK_INPUT_MAX_BYTES": "20971521"
+            },
+            "error_contains": "NETWORK_INPUT_MAX_BYTES"
+          }
+        ],
+        "name": "NETWORK_INPUT_MAX_BYTES",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=600)"
+        ],
+        "default": 600,
+        "env_example": 600,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NETWORK_JOB_ATTEMPT_TIMEOUT_SECONDS": "601"
+            },
+            "error_contains": "NETWORK_JOB_ATTEMPT_TIMEOUT_SECONDS"
+          }
+        ],
+        "name": "NETWORK_JOB_ATTEMPT_TIMEOUT_SECONDS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=2)"
+        ],
+        "default": 2,
+        "env_example": 2,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NETWORK_JOB_GLOBAL_CONCURRENCY": "3"
+            },
+            "error_contains": "NETWORK_JOB_GLOBAL_CONCURRENCY"
+          }
+        ],
+        "name": "NETWORK_JOB_GLOBAL_CONCURRENCY",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 10,
+        "env_example": 10,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NETWORK_JOB_HEARTBEAT_SECONDS": "30"
+            },
+            "error_contains": "NETWORK_JOB_HEARTBEAT_SECONDS"
+          }
+        ],
+        "name": "NETWORK_JOB_HEARTBEAT_SECONDS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 30,
+        "env_example": 30,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NETWORK_JOB_LEASE_SECONDS": "0"
+            },
+            "error_contains": "NETWORK_JOB_LEASE_SECONDS"
+          }
+        ],
+        "name": "NETWORK_JOB_LEASE_SECONDS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Ge(ge=2)",
+          "Le(le=3)"
+        ],
+        "default": 3,
+        "env_example": 3,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NETWORK_JOB_MAX_ATTEMPTS": "4"
+            },
+            "error_contains": "NETWORK_JOB_MAX_ATTEMPTS"
+          }
+        ],
+        "name": "NETWORK_JOB_MAX_ATTEMPTS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": [
+          10,
+          60
+        ],
+        "env_example": [
+          10,
+          60
+        ],
+        "invalid_cases": [
+          {
+            "environment": {
+              "NETWORK_JOB_RETRY_BACKOFF_SECONDS": "[60, 10]"
+            },
+            "error_contains": "NETWORK_JOB_RETRY_BACKOFF_SECONDS"
+          }
+        ],
+        "name": "NETWORK_JOB_RETRY_BACKOFF_SECONDS",
+        "type": "str | list[int]",
+        "validators": [
+          "NETWORK_JOB_RETRY_BACKOFF_SECONDS:after:validate_retry_backoff",
+          "NETWORK_JOB_RETRY_BACKOFF_SECONDS:before:parse_retry_backoff",
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 5,
+        "env_example": 5,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NOTIFICATION_MAX_ATTEMPTS": "0"
+            },
+            "error_contains": "NOTIFICATION_MAX_ATTEMPTS"
+          }
+        ],
+        "name": "NOTIFICATION_MAX_ATTEMPTS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=180)"
+        ],
+        "default": 180,
+        "env_example": 180,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NOWCAST_DEADLINE_SECONDS": "181"
+            },
+            "error_contains": "NOWCAST_DEADLINE_SECONDS"
+          }
+        ],
+        "name": "NOWCAST_DEADLINE_SECONDS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Ge(ge=0)",
+          "Le(le=120)"
+        ],
+        "default": 120,
+        "env_example": 120,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NOWCAST_HORIZON_MINUTES": "121"
+            },
+            "error_contains": "NOWCAST_HORIZON_MINUTES"
+          }
+        ],
+        "name": "NOWCAST_HORIZON_MINUTES",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 10,
+        "env_example": 10,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NOWCAST_INTERVAL_MINUTES": "0"
+            },
+            "error_contains": "NOWCAST_INTERVAL_MINUTES"
+          }
+        ],
+        "name": "NOWCAST_INTERVAL_MINUTES",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Ge(ge=0)"
+        ],
+        "default": 2,
+        "env_example": 2,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NOWCAST_MAX_RETRIES": "3"
+            },
+            "error_contains": "NOWCAST_RETRY_BACKOFF_SECONDS"
+          }
+        ],
+        "name": "NOWCAST_MAX_RETRIES",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": false,
+        "env_example": false,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NOWCAST_RESERVED_SLOT_BORROWING": "true"
+            },
+            "error_contains": "NOWCAST_RESERVED_SLOT_BORROWING"
+          }
+        ],
+        "name": "NOWCAST_RESERVED_SLOT_BORROWING",
+        "type": "bool",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": [
+          5,
+          15
+        ],
+        "env_example": [
+          5,
+          15
+        ],
+        "invalid_cases": [
+          {
+            "environment": {
+              "NOWCAST_RETRY_BACKOFF_SECONDS": "[15, 5]"
+            },
+            "error_contains": "NOWCAST_RETRY_BACKOFF_SECONDS"
+          }
+        ],
+        "name": "NOWCAST_RETRY_BACKOFF_SECONDS",
+        "type": "str | list[int]",
+        "validators": [
+          "NOWCAST_RETRY_BACKOFF_SECONDS:after:validate_retry_backoff",
+          "NOWCAST_RETRY_BACKOFF_SECONDS:before:parse_retry_backoff",
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": 5,
+        "env_example": 5,
+        "invalid_cases": [
+          {
+            "environment": {
+              "NOWCAST_STEP_MINUTES": "6"
+            },
+            "error_contains": "NOWCAST_STEP_MINUTES"
+          }
+        ],
+        "name": "NOWCAST_STEP_MINUTES",
+        "type": "Literal[5]",
+        "validators": [
+          "NOWCAST_STEP_MINUTES:before:parse_fixed_integer",
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 120,
+        "env_example": 120,
+        "invalid_cases": [
+          {
+            "environment": {
+              "RATE_LIMIT_FORECAST_READ_PER_MINUTE": "0"
+            },
+            "error_contains": "RATE_LIMIT_FORECAST_READ_PER_MINUTE"
+          }
+        ],
+        "name": "RATE_LIMIT_FORECAST_READ_PER_MINUTE",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 30,
+        "env_example": 30,
+        "invalid_cases": [
+          {
+            "environment": {
+              "RATE_LIMIT_FORECAST_TRANSITION_PER_MINUTE": "0"
+            },
+            "error_contains": "RATE_LIMIT_FORECAST_TRANSITION_PER_MINUTE"
+          }
+        ],
+        "name": "RATE_LIMIT_FORECAST_TRANSITION_PER_MINUTE",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 10,
+        "env_example": 10,
+        "invalid_cases": [
+          {
+            "environment": {
+              "RATE_LIMIT_NETWORK_JOB_SUBMIT_PER_MINUTE": "0"
+            },
+            "error_contains": "RATE_LIMIT_NETWORK_JOB_SUBMIT_PER_MINUTE"
+          }
+        ],
+        "name": "RATE_LIMIT_NETWORK_JOB_SUBMIT_PER_MINUTE",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 20,
+        "env_example": 20,
+        "invalid_cases": [
+          {
+            "environment": {
+              "RATE_LIMIT_SIMULATION_SUBMIT_PER_MINUTE": "0"
+            },
+            "error_contains": "RATE_LIMIT_SIMULATION_SUBMIT_PER_MINUTE"
+          }
+        ],
+        "name": "RATE_LIMIT_SIMULATION_SUBMIT_PER_MINUTE",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 30,
+        "env_example": 30,
+        "invalid_cases": [
+          {
+            "environment": {
+              "RATE_LIMIT_SSE_CONNECT_PER_MINUTE": "0"
+            },
+            "error_contains": "RATE_LIMIT_SSE_CONNECT_PER_MINUTE"
+          }
+        ],
+        "name": "RATE_LIMIT_SSE_CONNECT_PER_MINUTE",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=67108864)"
+        ],
+        "default": 67108864,
+        "env_example": 67108864,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIMULATION_FRAME_MAX_BYTES": "67108865"
+            },
+            "error_contains": "SIMULATION_FRAME_MAX_BYTES"
+          }
+        ],
+        "name": "SIMULATION_FRAME_MAX_BYTES",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=8589934592)"
+        ],
+        "default": 8589934592,
+        "env_example": 8589934592,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIMULATION_OUTPUT_MAX_BYTES": "8589934593"
+            },
+            "error_contains": "SIMULATION_OUTPUT_MAX_BYTES"
+          }
+        ],
+        "name": "SIMULATION_OUTPUT_MAX_BYTES",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 90,
+        "env_example": 90,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIMULATION_RESULT_RETENTION_DAYS": "0"
+            },
+            "error_contains": "SIMULATION_RESULT_RETENTION_DAYS"
+          }
+        ],
+        "name": "SIMULATION_RESULT_RETENTION_DAYS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=600)"
+        ],
+        "default": 600,
+        "env_example": 600,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIM_ATTEMPT_TIMEOUT_SECONDS": "601"
+            },
+            "error_contains": "SIM_ATTEMPT_TIMEOUT_SECONDS"
+          }
+        ],
+        "name": "SIM_ATTEMPT_TIMEOUT_SECONDS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=1)"
+        ],
+        "default": 1,
+        "env_example": 1,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIM_CANCEL_POLL_SECONDS": "2"
+            },
+            "error_contains": "SIM_CANCEL_POLL_SECONDS"
+          }
+        ],
+        "name": "SIM_CANCEL_POLL_SECONDS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": 2,
+        "env_example": 2,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIM_GLOBAL_CONCURRENCY": "1"
+            },
+            "error_contains": "SIM_GLOBAL_CONCURRENCY"
+          },
+          {
+            "environment": {
+              "SIM_GLOBAL_CONCURRENCY": "3"
+            },
+            "error_contains": "SIM_GLOBAL_CONCURRENCY"
+          }
+        ],
+        "name": "SIM_GLOBAL_CONCURRENCY",
+        "type": "Literal[2]",
+        "validators": [
+          "SIM_GLOBAL_CONCURRENCY:before:parse_fixed_integer",
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 10,
+        "env_example": 10,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIM_HEARTBEAT_SECONDS": "30"
+            },
+            "error_contains": "SIM_HEARTBEAT_SECONDS"
+          }
+        ],
+        "name": "SIM_HEARTBEAT_SECONDS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=20971520)"
+        ],
+        "default": 20971520,
+        "env_example": 20971520,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIM_INPUT_MAX_BYTES": "20971521"
+            },
+            "error_contains": "SIM_INPUT_MAX_BYTES"
+          }
+        ],
+        "name": "SIM_INPUT_MAX_BYTES",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)"
+        ],
+        "default": 30,
+        "env_example": 30,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIM_LEASE_SECONDS": "0"
+            },
+            "error_contains": "SIM_LEASE_SECONDS"
+          }
+        ],
+        "name": "SIM_LEASE_SECONDS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Ge(ge=2)",
+          "Le(le=3)"
+        ],
+        "default": 3,
+        "env_example": 3,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIM_MAX_ATTEMPTS": "4"
+            },
+            "error_contains": "SIM_MAX_ATTEMPTS"
+          }
+        ],
+        "name": "SIM_MAX_ATTEMPTS",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": 1,
+        "env_example": 1,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIM_NOWCAST_RESERVED_SLOTS": "2"
+            },
+            "error_contains": "SIM_NOWCAST_RESERVED_SLOTS"
+          }
+        ],
+        "name": "SIM_NOWCAST_RESERVED_SLOTS",
+        "type": "Literal[1]",
+        "validators": [
+          "SIM_NOWCAST_RESERVED_SLOTS:before:parse_fixed_integer",
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": [
+          10,
+          60
+        ],
+        "env_example": [
+          10,
+          60
+        ],
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIM_RETRY_BACKOFF_SECONDS": "[60, 10]"
+            },
+            "error_contains": "SIM_RETRY_BACKOFF_SECONDS"
+          }
+        ],
+        "name": "SIM_RETRY_BACKOFF_SECONDS",
+        "type": "str | list[int]",
+        "validators": [
+          "SIM_RETRY_BACKOFF_SECONDS:after:validate_retry_backoff",
+          "SIM_RETRY_BACKOFF_SECONDS:before:parse_retry_backoff",
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [
+          "Gt(gt=0)",
+          "Le(le=2147483648)"
+        ],
+        "default": 2147483648,
+        "env_example": 2147483648,
+        "invalid_cases": [
+          {
+            "environment": {
+              "SIM_WORKSPACE_MAX_BYTES": "2147483649"
+            },
+            "error_contains": "SIM_WORKSPACE_MAX_BYTES"
+          }
+        ],
+        "name": "SIM_WORKSPACE_MAX_BYTES",
+        "type": "int",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      },
+      {
+        "authorized": true,
+        "constraints": [],
+        "default": "auto",
+        "env_example": "auto",
+        "invalid_cases": [
+          {
+            "environment": {
+              "SOLVER_DEFAULT_SELECTION": "explicit"
+            },
+            "error_contains": "SOLVER_DEFAULT_SELECTION"
+          }
+        ],
+        "name": "SOLVER_DEFAULT_SELECTION",
+        "type": "Literal['auto', 'explicit']",
+        "validators": [
+          "Settings:model:validate_simulation_contract"
+        ]
+      }
+    ],
+    "unauthorized_field_count": 51,
+    "unauthorized_fields": [
+      {
+        "authorized": false,
+        "name": "ACCESS_TOKEN_EXPIRE_MINUTES",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "ALERT_EMAIL_RECIPIENTS",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "ALERT_WEBHOOK_URLS",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "APP_NAME",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "APP_VERSION",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "CORS_ORIGINS",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "DATABASE_URL",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "DATABASE_URL_SYNC",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "DB_MAX_OVERFLOW",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "DB_POOL_SIZE",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "DEBUG",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "DEFAULT_MODEL_VERSION",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "DEPLOYMENT_ENVIRONMENT",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "FFMPEG_PATH",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "FFPROBE_PATH",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "HLS_LIST_SIZE",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "HLS_OUTPUT_DIR",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "HLS_SEGMENT_TIME",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "INFLUXDB_BUCKET",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "INFLUXDB_ORG",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "INFLUXDB_TOKEN",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "INFLUXDB_URL",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "JWT_ALGORITHM",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "JWT_PRIVATE_KEY",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "JWT_PUBLIC_KEY",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "JWT_SECRET_KEY",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "LOG_LEVEL",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "MAX_ACTIVE_INFERENCE_WORKERS",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "MAX_ACTIVE_STREAMS",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "MAX_UPLOAD_SIZE_MB",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "MEDIA_CONNECT_TIMEOUT_SECONDS",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "MEDIA_READ_TIMEOUT_SECONDS",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "MODEL_CONFIDENCE_THRESHOLD",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "MODEL_INFERENCE_DEVICE",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "MODEL_IOU_THRESHOLD",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "MODEL_STORAGE_PATH",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "RATE_LIMIT_PER_MINUTE",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "REDIS_CHANNEL_ALERTS",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "REDIS_CHANNEL_MODEL",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "REDIS_CHANNEL_SENSOR",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "REDIS_URL",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "SCREENSHOT_DIR",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "SMTP_ENABLED",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "SMTP_FROM",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "SMTP_HOST",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "SMTP_PASSWORD",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "SMTP_PORT",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "SMTP_USERNAME",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "SMTP_USE_TLS",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "STREAM_HEARTBEAT_INTERVAL",
+        "preserve_only": true
+      },
+      {
+        "authorized": false,
+        "name": "WEBHOOK_ENABLED",
+        "preserve_only": true
+      }
+    ]
+  },
+  "status": "READY_WITH_DEFERRED",
+  "versions": {
+    "lockfileVersion": 3,
+    "node": "18.20.8",
+    "npm": "10.8.2",
+    "packageManager": "npm@10.8.2",
+    "python": "3.11",
+    "rollupOverride": "4.22.0"
+  }
+}

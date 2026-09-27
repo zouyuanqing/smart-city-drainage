@@ -15,17 +15,24 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-import cv2
 import numpy as np
+
+# OpenCV belongs to the AI profile; the pure-Python fallback must still boot.
+try:
+    import cv2
+except ImportError:  # pragma: no cover - missing wheel or numpy ABI mismatch
+    cv2 = None  # type: ignore[assignment]
 
 from app.core.config import settings
 from app.core.model_manager import get_model_manager
+from app.core.security import media_protocol_allowlist
 from app.services.notification_service import notification_service
 from app.services.sse_manager import SSEManager
 
@@ -38,8 +45,12 @@ ALERT_CLASSES = {
     "damaged_manhole": {"threshold": 0.50, "level": "warning"},
     "shifted_manhole": {"threshold": 0.50, "level": "warning"},
     "intruder": {"threshold": 0.60, "level": "critical"},
-    "illegal_parking": {"threshold": 0.55, "level": "warning"},
+    "illegal_parking": {"threshold": 0.55, "level": "critical"},
 }
+
+
+class MediaResourceLimitExceeded(RuntimeError):
+    """Raised when a media connection would exceed the process-wide budget."""
 
 
 class InferenceWorker:
@@ -60,24 +71,75 @@ class InferenceWorker:
         inference_interval: float = 2.0,
         snapshot_interval: float = 30.0,
         confidence_threshold: float = 0.45,
+        host_header: str | None = None,
     ) -> None:
         self.camera_id = camera_id
         self.stream_url = stream_url
+        self.host_header = host_header
         self.inference_interval = inference_interval
         self.snapshot_interval = snapshot_interval
         self.confidence_threshold = confidence_threshold
 
         self._running = False
         self._task: Optional[asyncio.Task] = None
-        self._cap: Optional[cv2.VideoCapture] = None
+        self._cap: Optional["cv2.VideoCapture"] = None
         self._last_snapshot_time = 0.0
         self._frame_count = 0
         self._inference_count = 0
         self._alert_count = 0
         self._sse = SSEManager.get_instance()
 
+    def _ffmpeg_capture_options(self) -> str:
+        """Return bounded FFmpeg options for the approved stream URL."""
+        timeout_us = settings.MEDIA_READ_TIMEOUT_SECONDS * 1_000_000
+        protocol = media_protocol_allowlist(self.stream_url)
+        options = (
+            f"protocol_whitelist|{protocol}"
+            f"|rtsp_transport|tcp|stimeout|{timeout_us}"
+            f"|rw_timeout|{timeout_us}"
+        )
+        if self.host_header:
+            options += f"|headers|Host: {self.host_header}\\r\\n"
+        return options
+
+    def _video_capture_params(self) -> list[int]:
+        """Return integer timeout and buffering parameters for OpenCV."""
+        timeout_us = settings.MEDIA_READ_TIMEOUT_SECONDS * 1_000_000
+        return [
+            cv2.CAP_PROP_OPEN_TIMEOUT_MSEC,
+            settings.MEDIA_CONNECT_TIMEOUT_SECONDS * 1000,
+            cv2.CAP_PROP_READ_TIMEOUT_MSEC,
+            settings.MEDIA_READ_TIMEOUT_SECONDS * 1000,
+            cv2.CAP_PROP_STREAM_OPEN_TIME_USEC,
+            timeout_us,
+            cv2.CAP_PROP_BUFFERSIZE,
+            1,
+        ]
+
+    def _open_video_capture(self) -> "cv2.VideoCapture":
+        """Open one capture with process-local FFmpeg restrictions."""
+        option_name = "OPENCV_FFMPEG_CAPTURE_OPTIONS"
+        previous = os.environ.get(option_name)
+        os.environ[option_name] = self._ffmpeg_capture_options()
+        try:
+            return cv2.VideoCapture(
+                self.stream_url,
+                cv2.CAP_FFMPEG,
+                self._video_capture_params(),
+            )
+        finally:
+            if previous is None:
+                os.environ.pop(option_name, None)
+            else:
+                os.environ[option_name] = previous
+
     async def start(self) -> None:
         """启动推理循环"""
+        if cv2 is None:
+            raise RuntimeError(
+                "视频流推理需要 OpenCV(cv2)：请安装 CPU/GPU profile 依赖，"
+                "纯 Python 水力降级路径不包含 cv2"
+            )
         if self._running:
             return
 
@@ -107,7 +169,7 @@ class InferenceWorker:
         while self._running:
             try:
                 if self._cap is None or not self._cap.isOpened():
-                    self._cap = cv2.VideoCapture(self.stream_url)
+                    self._cap = self._open_video_capture()
                     if not self._cap.isOpened():
                         logger.warning(
                             "⚠️  [%s] 无法打开视频流，%ds 后重试",
@@ -204,7 +266,10 @@ class InferenceWorker:
                 "alert_type": item["class_name"],
                 "level": item["level"],
                 "title": f"[{self.camera_id}] {item['class_name']} 检测",
-                "description": f"AI 检测到 {item['class_name']}，置信度: {item['confidence']:.2f}",
+                "description": (
+                    f"AI 检测到 {item['class_name']}，"
+                    f"置信度: {item['confidence']:.2f}"
+                ),
                 "camera_id": self.camera_id,
                 "snapshot_url": str(snapshot_path) if snapshot_path else None,
                 "detection_confidence": round(item["confidence"], 4),
@@ -250,6 +315,7 @@ class WorkerPool:
 
     def __init__(self) -> None:
         self._workers: dict[str, InferenceWorker] = {}
+        self._lock = asyncio.Lock()
 
     async def add_worker(
         self,
@@ -257,14 +323,28 @@ class WorkerPool:
         stream_url: str,
         **kwargs: Any,
     ) -> InferenceWorker:
-        """添加并启动一个 Worker"""
-        if camera_id in self._workers:
-            await self.remove_worker(camera_id)
+        """添加并启动一个 Worker within the global concurrency budget."""
+        async with self._lock:
+            if (
+                camera_id not in self._workers
+                and len(self._workers) >= settings.MAX_ACTIVE_INFERENCE_WORKERS
+            ):
+                raise MediaResourceLimitExceeded(
+                    "active inference worker limit reached"
+                )
+            if camera_id in self._workers:
+                await self.remove_worker(camera_id)
 
-        worker = InferenceWorker(camera_id=camera_id, stream_url=stream_url, **kwargs)
-        self._workers[camera_id] = worker
-        await worker.start()
-        return worker
+            worker = InferenceWorker(
+                camera_id=camera_id, stream_url=stream_url, **kwargs
+            )
+            self._workers[camera_id] = worker
+            try:
+                await worker.start()
+            except Exception:
+                self._workers.pop(camera_id, None)
+                raise
+            return worker
 
     async def remove_worker(self, camera_id: str) -> None:
         """移除并停止 Worker"""

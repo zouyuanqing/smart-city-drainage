@@ -1,0 +1,187 @@
+{
+  "schema": "hydraulic-backend-acceptance-matrix-v2",
+  "fixture_set": "backend-acceptance-v2",
+  "matrix_semantics": "Requirements and diagnostics only; status is valid only when the current pytest session and same-run artifacts satisfy the frozen evidence contract.",
+  "fixture_sha256": {
+    "acceptance/v1/acceptance_requirements.json": "72d60e6605096a44c7a5889a0955308d306a4204e8ee7969a14a2c395cdfc7cd",
+    "acceptance/v1/calibration_improvement.json": "7eead2935407d3e143370bb450b3fd40065921226ebad7fef3c11e5dbf278a7f",
+    "acceptance/v1/forecast_suppression.json": "e9243f7da6b9f43c04322496a453d6056b9357af305c1d4aa32d17d06c10f538",
+    "acceptance/v1/legacy_api.json": "b8937eba32e14b5c5665cebfd56b593b62d4c801f11c39cbd104206111f1ad44",
+    "acceptance/v1/malicious_imports.json": "4be5a38be2f602ddbedb05c186ecfde56634edd5ad314dbe4bc855c73b25ab0b",
+    "acceptance/v1/network_valid.geojson": "90868ecfc276446d8ebaa3413f5009ca973021502ba5e40adbb4cfabdfa0fab9",
+    "acceptance/v1/rainfall_50y_24h.json": "8205f0dea7e6e601ec78841ff0ee8e188468415fe043773a83e031f09f4fb6a0",
+    "imports/swmm_minimal_wgs84.inp": "677ecfc6a551b520848da4d651f05bcf0f43531351f57f6b18e30c4e36e89a89"
+  },
+  "requirements": {
+    "FR-1": ["AC-1", "AC-2"],
+    "FR-2": ["AC-3"],
+    "FR-3": ["AC-3", "AC-5", "AC-6"],
+    "FR-4": ["AC-4"],
+    "FR-5": ["AC-1", "AC-3", "AC-4", "AC-5", "AC-6", "AC-7"],
+    "FR-6": ["AC-3", "AC-4", "AC-6"],
+    "FR-7": ["AC-7", "AC-8"]
+  },
+  "cases": [
+    {
+      "id": "AC-1",
+      "title": "valid INP and GeoJSON import is durable, idempotent and round-trips",
+      "status": "NOT RUN",
+      "reason": "The current HTTP diagnostics use HydraulicApiStore(durable_backend=False) and prove only queued, uncommitted adapter state. Same-run G1/G2/G6 artifacts for both profiles are absent.",
+      "tests": [
+        "tests/acceptance/test_acceptance_matrix.py::test_ac1_in_memory_adapter_valid_inp_import_is_accepted_and_replayed",
+        "tests/acceptance/test_acceptance_matrix.py::test_ac1_in_memory_adapter_valid_geojson_import_is_accepted_and_replayed",
+        "tests/acceptance/test_acceptance_matrix.py::test_ac1_production_api_fails_closed_without_durable_repository"
+      ],
+      "pass_nodeids": [],
+      "fixtures": ["acceptance/v1/network_valid.geojson", "imports/swmm_minimal_wgs84.inp"],
+      "required_gates": ["g1", "g2", "g6"],
+      "required_artifact_suffixes": [
+        "g1/postgis/result.json",
+        "g1/portable/result.json",
+        "g2/result.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ]
+    },
+    {
+      "id": "AC-2",
+      "title": "hostile files and frozen G2 security boundaries fail closed",
+      "status": "BLOCKED",
+      "reason": "A raw multipart Windows drive filename is still reduced to its basename before the route contract is reached; duplicate stable keys are accepted, and durable idempotency TTL/FK/concurrency, cleanup and readiness evidence are not complete.",
+      "tests": [
+        "tests/acceptance/test_negative_security.py::test_ac2_malicious_import_case_is_rejected_without_state_mutation",
+        "tests/acceptance/test_negative_security.py::test_ac2_raw_multipart_filename_is_rejected_without_parser_rewrite",
+        "tests/acceptance/test_negative_security.py::test_ac2_route_rejects_original_windows_and_unc_filenames",
+        "tests/acceptance/test_negative_security.py::test_import_authentication_rbac_and_idempotency_boundaries",
+        "tests/acceptance/test_negative_security.py::test_import_jwt_negative_matrix_is_rejected",
+        "tests/acceptance/test_negative_security.py::test_import_rate_limit_returns_429_without_state_mutation",
+        "tests/acceptance/test_negative_security.py::test_import_idempotency_concurrency_and_expiry_generation",
+        "tests/acceptance/test_negative_security.py::test_forecast_endpoint_requires_authentication_before_resource_access",
+        "tests/acceptance/test_negative_security.py::test_fixture_bytes_are_not_secret_or_executable_payloads"
+      ],
+      "pass_nodeids": [],
+      "fixtures": ["acceptance/v1/malicious_imports.json"],
+      "required_gates": ["g2", "g6"],
+      "required_artifact_suffixes": [
+        "g2/result.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ]
+    },
+    {
+      "id": "AC-3",
+      "title": "50-year 24-hour solver, worker, frame and timeline acceptance",
+      "status": "NOT RUN",
+      "reason": "Current tests are request metadata smoke plus in-memory frame and repository injection. Real four-core solver, worker kill, database fencing, timeout, retry, cleanup and timeline artifacts were not run.",
+      "tests": [
+        "tests/acceptance/test_acceptance_matrix.py::test_ac3_request_smoke_50_year_24_hour_preserves_289_frame_grid",
+        "tests/acceptance/test_acceptance_matrix.py::test_ac3_in_memory_frame_injection_is_replayable",
+        "tests/acceptance/test_acceptance_matrix.py::test_fr3_in_memory_task_repository_crash_recovery_fences_old_attempt"
+      ],
+      "pass_nodeids": [],
+      "fixtures": ["acceptance/v1/rainfall_50y_24h.json"],
+      "required_gates": ["g3", "g5", "e2e", "g6"],
+      "required_artifact_suffixes": [
+        "g3/result.json",
+        "g5/result.json",
+        "e2e/ac-smoke.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ]
+    },
+    {
+      "id": "AC-4",
+      "title": "nowcast, durable alert/outbox, authenticated SSE and suppression",
+      "status": "NOT RUN",
+      "reason": "The current test is a sequential in-memory service characterization with a fake artifact resolver. Durable transactions, nowcast, outbox, concurrency, restart replay and 180-second SLO evidence are absent.",
+      "tests": [
+        "tests/acceptance/test_acceptance_matrix.py::test_ac4_in_memory_forecast_suppression_uses_half_open_30_minute_window"
+      ],
+      "pass_nodeids": [],
+      "fixtures": ["acceptance/v1/forecast_suppression.json"],
+      "required_gates": ["g4", "g5", "e2e", "g6"],
+      "required_artifact_suffixes": [
+        "g4/result.json",
+        "g5/result.json",
+        "e2e/ac-smoke.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ]
+    },
+    {
+      "id": "AC-5",
+      "title": "externally verified observations produce a traceable calibration improvement",
+      "status": "BLOCKED",
+      "reason": "No real source-event ingest, trust-policy resolution, authenticated active binding, good-quality dataset or independently solved baseline/candidate report exists. The in-memory positive fixture is not AC evidence.",
+      "tests": [
+        "tests/acceptance/test_acceptance_matrix.py::test_ac5_unverified_fixture_cannot_claim_eligibility",
+        "tests/acceptance/test_acceptance_matrix.py::test_ac5_synthetic_observations_cannot_claim_ac5_eligibility",
+        "tests/acceptance/test_acceptance_matrix.py::test_ac5_observed_comparison_requires_real_verified_pairs"
+      ],
+      "pass_nodeids": [],
+      "fixtures": ["acceptance/v1/calibration_improvement.json"],
+      "required_gates": ["g3", "g5", "e2e", "g6"],
+      "required_artifact_suffixes": [
+        "g3/result.json",
+        "g5/result.json",
+        "e2e/ac-smoke.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ]
+    },
+    {
+      "id": "AC-6",
+      "title": "published A/B results expose recomputable lineage and metric deltas",
+      "status": "NOT RUN",
+      "reason": "The current comparison diagnostic injects completed simulations, empty frames and hand-written metrics into memory. Real result publication, checksums, units and restart replay are not proven.",
+      "tests": [
+        "tests/acceptance/test_acceptance_matrix.py::test_ac6_in_memory_comparison_returns_deltas_and_rejects_incompatible_grid",
+        "tests/acceptance/test_acceptance_matrix.py::test_ac6_in_memory_comparison_handles_zero_baseline",
+        "tests/acceptance/test_acceptance_matrix.py::test_ac6_comparison_rejects_metric_unit_mismatch"
+      ],
+      "pass_nodeids": [],
+      "fixtures": ["acceptance/v1/rainfall_50y_24h.json"],
+      "required_gates": ["g3", "e2e", "g6"],
+      "required_artifact_suffixes": [
+        "g3/result.json",
+        "e2e/ac-smoke.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ]
+    },
+    {
+      "id": "AC-7",
+      "title": "quality gates and legacy REST/SSE wire contracts remain compatible",
+      "status": "NOT RUN",
+      "reason": "Wire-level legacy diagnostics are being executed, but the complete Python/Node quality suite, startup, browser regression and independent postgis/portable characterizations have no same-run artifacts.",
+      "tests": [
+        "tests/acceptance/test_acceptance_matrix.py::test_ac7_legacy_api_and_sse_wire_contract_has_no_regression"
+      ],
+      "pass_nodeids": [],
+      "fixtures": ["acceptance/v1/legacy_api.json"],
+      "required_gates": ["g0", "e2e", "g6"],
+      "required_artifact_suffixes": [
+        "g0/result.json",
+        "e2e/ac-smoke.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ]
+    },
+    {
+      "id": "AC-8",
+      "title": "fresh dual-profile Compose, migration, worker and rollback",
+      "status": "NOT RUN",
+      "reason": "No postgis or portable live G6 evidence directory exists. Compose config, build or a single profile cannot substitute for two fresh-volume runs and backup/destroy/restore proof.",
+      "tests": [
+        "tests/acceptance/test_acceptance_matrix.py::test_ac8_evidence_contract_requires_two_independent_profiles"
+      ],
+      "pass_nodeids": [],
+      "fixtures": ["acceptance/v1/acceptance_requirements.json"],
+      "required_gates": ["g6"],
+      "required_artifact_suffixes": [
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ]
+    }
+  ]
+}

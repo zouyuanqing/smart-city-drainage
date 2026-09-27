@@ -1,0 +1,46 @@
+{
+  "schema": "hydraulic-import-fixture-manifest-v1",
+  "fixture_set": "hydraulic-import-contract-v1",
+  "fixtures": [
+    {
+      "path": "swmm_minimal_wgs84.inp",
+      "classification": "valid-wgs84",
+      "parser": "parse_swmm",
+      "coordinate_mode": "wgs84",
+      "expected": {
+        "conduits": 1,
+        "nodes": 2,
+        "subcatchments": 1,
+        "issues": []
+      },
+      "bytes": 409,
+      "sha256": "677ecfc6a551b520848da4d651f05bcf0f43531351f57f6b18e30c4e36e89a89"
+    },
+    {
+      "path": "swmm_minimal_local.inp",
+      "classification": "valid-local",
+      "parser": "parse_swmm",
+      "coordinate_mode": "local",
+      "local_to_wgs84": [0.001, 0.0, 121.0, 0.0, 0.001, 31.0],
+      "expected": {
+        "conduits": 1,
+        "nodes": 2,
+        "subcatchments": 1,
+        "issues": []
+      },
+      "bytes": 407,
+      "sha256": "4614f7eeacc542d4a5596d0fdeacc91c1869f4b53ee6f15a6ae9e313bef1c04b"
+    },
+    {
+      "path": "unsafe_paths.json",
+      "classification": "unsafe-path-matrix",
+      "parser": "parse_swmm",
+      "expected": {
+        "rows": 6,
+        "code": "UNSAFE_PATH"
+      },
+      "bytes": 220,
+      "sha256": "283b4c0cfaa4f3002d2130a3a307e993f787e3255ec964050e1f7b434cd3e9b0"
+    }
+  ]
+}

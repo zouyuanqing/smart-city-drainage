@@ -18,14 +18,14 @@ async def _check_postgresql() -> dict:
 
 async def _check_influxdb() -> dict:
     try:
-        from app.services.influxdb_service import influxdb_client
+        # The module exposes a singleton, not a module-level ``influxdb_client``.
+        # Importing that name raised ImportError, so this check could only ever
+        # report an error regardless of whether InfluxDB was reachable.
+        from app.services.influxdb_service import influxdb_service
 
-        if influxdb_client is None:
-            return {"status": "not_configured", "detail": "influxdb_client is None"}
-        ping = influxdb_client.ping()
-        if ping:
-            return {"status": "connected", "detail": ""}
-        return {"status": "error", "detail": "ping returned False"}
+        if not await influxdb_service.ping():
+            return {"status": "error", "detail": "ping returned False"}
+        return {"status": "connected", "detail": ""}
     except ImportError:
         return {
             "status": "not_configured",

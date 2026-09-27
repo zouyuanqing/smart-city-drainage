@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 # 预设设备
-PRESET_DEVICES = [
+PRESET_DEVICES: list[dict[str, Any]] = [
     {
         "id": "a0000001-0000-0000-0000-000000000001",
         "code": "MH-001",

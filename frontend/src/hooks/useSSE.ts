@@ -37,6 +37,8 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMountedRef = useRef(true)
   const retryCountRef = useRef(0)
+  const generationRef = useRef(0)
+  const manualDisconnectRef = useRef(false)
 
   const callbacksRef = useRef({ onSensorData, onAlert, onConnected, onDisconnected, onError })
   callbacksRef.current = { onSensorData, onAlert, onConnected, onDisconnected, onError }
@@ -46,8 +48,13 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
   }, [])
 
   const connect = useCallback(() => {
+    manualDisconnectRef.current = false
+    generationRef.current += 1
+    const generation = generationRef.current
+
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
+      eventSourceRef.current = null
     }
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current)
@@ -56,15 +63,21 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
 
     const es = new EventSource('/api/sse/events')
     eventSourceRef.current = es
+    const isCurrent = () =>
+      isMountedRef.current &&
+      !manualDisconnectRef.current &&
+      generationRef.current === generation &&
+      eventSourceRef.current === es
 
     es.onopen = () => {
-      if (!isMountedRef.current) return
+      if (!isCurrent()) return
       retryCountRef.current = 0
       setIsConnected(true)
       callbacksRef.current.onConnected?.()
     }
 
     es.addEventListener('connected', (event) => {
+      if (!isCurrent()) return
       try {
         const data = JSON.parse(event.data)
         console.info(`[SSE] 已连接 (ID: ${data.client_id}, 在线: ${data.sse_clients})`)
@@ -74,7 +87,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
     })
 
     es.addEventListener('sensors', (event) => {
-      if (!isMountedRef.current) return
+      if (!isCurrent()) return
       try {
         const payload = JSON.parse(event.data)
         callbacksRef.current.onSensorData?.(payload.readings || [])
@@ -84,7 +97,7 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
     })
 
     es.addEventListener('alerts', (event) => {
-      if (!isMountedRef.current) return
+      if (!isCurrent()) return
       try {
         const payload = JSON.parse(event.data)
         callbacksRef.current.onAlert?.(payload.alert)
@@ -94,21 +107,31 @@ export function useSSE(options: UseSSEOptions = {}): UseSSEReturn {
     })
 
     es.onerror = () => {
-      if (!isMountedRef.current) return
+      if (!isCurrent()) return
       setIsConnected(false)
       callbacksRef.current.onDisconnected?.()
       callbacksRef.current.onError?.(new Event('error'))
       es.close()
+      eventSourceRef.current = null
 
-      if (isMountedRef.current) {
-        const delay = getReconnectDelay()
-        retryCountRef.current += 1
-        reconnectTimerRef.current = setTimeout(connect, delay)
-      }
+      const delay = getReconnectDelay()
+      retryCountRef.current += 1
+      reconnectTimerRef.current = setTimeout(() => {
+        reconnectTimerRef.current = null
+        if (
+          isMountedRef.current &&
+          !manualDisconnectRef.current &&
+          generationRef.current === generation
+        ) {
+          connect()
+        }
+      }, delay)
     }
   }, [getReconnectDelay])
 
   const disconnect = useCallback(() => {
+    manualDisconnectRef.current = true
+    generationRef.current += 1
     if (reconnectTimerRef.current) {
       clearTimeout(reconnectTimerRef.current)
       reconnectTimerRef.current = null

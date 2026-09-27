@@ -1,0 +1,73 @@
+{
+  "base_commit": "ca99e0485fb12fbecbd565e79d81f745f8d4a748",
+  "checks": [
+    {
+      "evidence": "reviews/v3-final-review-round-1.md:90-172",
+      "name": "schema_semantics",
+      "status": "PASS"
+    },
+    {
+      "evidence": "reviews/v3-final-review-round-1.md:174-182",
+      "name": "path_ownership",
+      "status": "PASS"
+    },
+    {
+      "evidence": "reviews/v3-final-review-round-1.md:184-195",
+      "name": "blocked_by",
+      "status": "PASS"
+    },
+    {
+      "evidence": "reviews/v3-final-review-round-1.md:142-147",
+      "name": "dependency_handoff_predicates",
+      "status": "PASS"
+    },
+    {
+      "evidence": "reviews/v3-final-review-round-1.md:168-171",
+      "name": "gate_definitions",
+      "status": "PASS"
+    }
+  ],
+  "document_bundle_sha256": "5b9b2e3f54bb910706a2d130ff564ebaf3e2292c9db3ace449b62cd5006fa55d",
+  "documents": [
+    {
+      "path": "docs/hydraulic-twin/IMPLEMENTATION_CONTRACT.md",
+      "sha256": "5fa5f57096e5ff7ca44d85797e8476c7f329525f582f2e039e6c882c19558141"
+    },
+    {
+      "path": "docs/hydraulic-twin/PRD_SUPPLEMENT.md",
+      "sha256": "120b644023d14d42f54d48bb068361964afc5dd98343434d92518449ed741551"
+    },
+    {
+      "path": "docs/hydraulic-twin/SOURCE_PRD.md",
+      "sha256": "11e56e68a68017b84b5ae577dede8a74f6217d4a7877f5e358a18f14e66807ee"
+    }
+  ],
+  "findings": [
+    {
+      "id": "M-01",
+      "severity": "MEDIUM",
+      "status": "NON_BLOCKING",
+      "summary": "Design approval and implementation validation remain separate; this artifact does not assert G0-G6 or acceptance PASS."
+    },
+    {
+      "id": "L-01",
+      "owner": "integration-config",
+      "severity": "LOW",
+      "status": "DEFERRED",
+      "summary": "Refresh stale historical line-number references when their owning documentation is next edited."
+    },
+    {
+      "id": "L-02",
+      "severity": "LOW",
+      "status": "SATISFIED_BY_ARTIFACT",
+      "summary": "The approved live-file bundle is recorded only in this final R0 artifact."
+    }
+  ],
+  "review_report": "docs/hydraulic-twin/reviews/v3-final-review-round-1.md",
+  "review_report_sha256": "93f6e76ee0ff34581672d23371fc170a2c2e4a0e5482a281f078b166a65afe29",
+  "reviewed_at": "2026-09-24",
+  "reviewer": "dynamic-workflow v3-final-review-1",
+  "schema": "v3-independent-review-v1",
+  "scope": "stage-D design freeze only; G0-G6 and AC-1-AC-8 remain NOT RUN",
+  "verdict": "R0_DESIGN_PASS"
+}

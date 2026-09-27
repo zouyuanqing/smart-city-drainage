@@ -1,0 +1,30 @@
+{
+  "simulation": {
+    "id": "sim-ac-3",
+    "network_id": "network-shanghai-001",
+    "network_revision_id": "revision-50y-24h-v1",
+    "target_manifest_id": "manifest-5k-10k-v1",
+    "target_manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+    "rainfall_scenario_id": "rainfall-50y-24h-5m-v1",
+    "solver_id": "py_mw",
+    "solver_version": "fixture-v1",
+    "status": "completed",
+    "progress": 100,
+    "started_at": "2026-09-24T00:00:00Z",
+    "finished_at": "2026-09-24T00:02:30Z",
+    "frame_count": 289,
+    "frame_interval_minutes": 5,
+    "duration_minutes": 1440,
+    "result_summary": {
+      "max_node_depth_m": 1.42,
+      "max_pipe_fill_ratio": 0.91,
+      "nonzero_pipe_count": 10000
+    }
+  },
+  "frame_manifest": {
+    "first_frame_time": "2026-09-24T00:00:00Z",
+    "last_frame_time": "2026-09-24T23:55:00Z",
+    "count": 289,
+    "payload_schema_version": "simulation-frame-v1"
+  }
+}

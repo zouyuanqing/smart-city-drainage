@@ -1,0 +1,235 @@
+{
+  "archive_contract": {
+    "component_tree_keys": [
+      "files",
+      "path",
+      "tree_sha256"
+    ],
+    "components": [
+      "influx",
+      "postgres",
+      "redis"
+    ],
+    "components_source": "scripts/backup.py::SUPPORTED_COMPONENTS",
+    "manifest_name": "manifest.json",
+    "manifest_schema": "smart-city-drainage-backup-v2",
+    "manifest_sidecar_name": "manifest.sha256",
+    "manifest_source": "scripts/backup_manifest.py::MANIFEST_SCHEMA",
+    "payload_hash_keys": [
+      "bytes",
+      "path",
+      "sha256",
+      "tree_sha256"
+    ],
+    "required_manifest_keys": [
+      "artifacts",
+      "backup_id",
+      "components",
+      "created_at",
+      "database",
+      "metadata_complete",
+      "metadata_gaps",
+      "repo",
+      "runtime",
+      "schema",
+      "services",
+      "writers_paused"
+    ],
+    "sidecar_format": "<64 lowercase hex>  manifest.json\n",
+    "sidecar_rule": "The archive .sha256 sidecar must exist; --allow-missing-sidecar is forbidden for the G6 round trip."
+  },
+  "assertions": [
+    {
+      "id": "R-1",
+      "predicate": "sha256(manifest.json) == read(manifest.sha256).split()[0]",
+      "requirement": "manifest.sha256 equals SHA-256 of manifest.json bytes"
+    },
+    {
+      "id": "R-2",
+      "predicate": "file_component.sha256 and tree_component.tree_sha256 all match",
+      "requirement": "every declared artifact and component payload hash re-verifies after restore"
+    },
+    {
+      "id": "R-3",
+      "predicate": "backend HYDRAULIC_SPATIAL_BACKEND == postgis|portable of the same run",
+      "requirement": "restored hydraulic schema profile matches the gate profile that produced the archive"
+    },
+    {
+      "id": "R-4",
+      "predicate": "restore report checks.api_sse_smoke covers api and sse entries with status PASS",
+      "requirement": "API and SSE smoke both succeed after the destructive restore"
+    },
+    {
+      "id": "R-5",
+      "predicate": "legacy characterization artifact from the same RUN_ID and commit is PASS",
+      "requirement": "legacy API/SSE characterization shows zero regression"
+    },
+    {
+      "id": "R-6",
+      "predicate": "artifact exists under g6/<profile>/ and shares RUN_ID and commit with the other profile",
+      "requirement": "restore evidence is profile-scoped and same-run"
+    }
+  ],
+  "commands": {
+    "backup": [
+      "python",
+      "scripts/backup.py",
+      "--backup-id",
+      "<RUN_ID>-<profile>",
+      "--components",
+      "postgres,redis,influx",
+      "--compose-file",
+      "docker-compose.yml",
+      "--schema-profile",
+      "<profile>",
+      "--postgres-user",
+      "drainage_admin",
+      "--postgres-db",
+      "smart_drainage",
+      "--writers-paused"
+    ],
+    "command_sources": [
+      "scripts/backup.py::build_parser",
+      "scripts/restore.py::build_parser",
+      "scripts/verify_hydraulic_stack.py::gate_g6"
+    ],
+    "destroy": [
+      "docker",
+      "compose",
+      "--profile",
+      "production",
+      "--profile",
+      "monitoring",
+      "-f",
+      "docker-compose.yml",
+      "down",
+      "-v",
+      "--remove-orphans"
+    ],
+    "forbidden_flags": [
+      "--allow-missing-sidecar"
+    ],
+    "recreate_after_restore": [
+      "docker",
+      "compose",
+      "--profile",
+      "production",
+      "--profile",
+      "monitoring",
+      "-f",
+      "docker-compose.yml",
+      "up",
+      "--build",
+      "-d",
+      "--wait"
+    ],
+    "restore": [
+      "python",
+      "scripts/restore.py",
+      "<archive>",
+      "--apply",
+      "--confirm",
+      "<RUN_ID>-<profile>",
+      "--components",
+      "postgres,redis,influx",
+      "--compose-file",
+      "docker-compose.yml",
+      "--stop-service",
+      "backend",
+      "--stop-service",
+      "simulation-worker",
+      "--start-service",
+      "backend",
+      "--api-smoke-url",
+      "http://127.0.0.1:8000/health",
+      "--sse-smoke-url",
+      "http://127.0.0.1:8000/api/forecast/events"
+    ],
+    "verify_before_destroy": [
+      "python",
+      "scripts/restore.py",
+      "<archive>",
+      "--verify-only"
+    ]
+  },
+  "compose_lock_fixture": "docker/hydraulic-gates/compose-v1.lock.json",
+  "content_sha256": "25ac4404d6f8aea9e1dc628ee02a9683695ff56ac049a53dee1775c4d85433b4",
+  "evidence_state": "NOT_RUN",
+  "fail_closed_rules": [
+    "A missing archive, manifest, sidecar, or payload is a failure, never a warning.",
+    "Hash drift between the pre-destroy verify and the post-restore verify is a failure.",
+    "Evidence from another RUN_ID or another commit is NOT evidence for this fixture.",
+    "A config-mode `docker compose config` run is not backup/restore evidence."
+  ],
+  "fixture_id": "restore-manifest-v1",
+  "gate": "g6",
+  "observed_results": {
+    "api_sse_smoke": null,
+    "archive_sha256": null,
+    "backup_id": null,
+    "checked_at": null,
+    "manifest_sha256": null,
+    "note": "Populated only by a real same-run G6 command; null here means NOT RUN.",
+    "restore_status": null
+  },
+  "profiles": {
+    "evidence_directories": [
+      "g6/postgis",
+      "g6/portable"
+    ],
+    "gate_profiles": [
+      "postgis",
+      "portable"
+    ],
+    "independence_rule": "Each profile runs its own command and writes its own evidence directory (g6/postgis, g6/portable); neither command may stand in for the other.",
+    "same_run_requirement": "Both profile artifacts must share one RUN_ID and one commit."
+  },
+  "restore_report": {
+    "accepted_status": [
+      "RESTORED",
+      "VERIFIED"
+    ],
+    "api_sse_smoke_rule": "API smoke requires HTTP 2xx; SSE smoke additionally requires text/event-stream. Partial smoke (only one of --api-smoke-url / --sse-smoke-url) is a warning and therefore fails this G6 fixture.",
+    "required_checks": [
+      "api_sse_smoke",
+      "manifest",
+      "restore"
+    ],
+    "required_fields": [
+      "archive",
+      "archive_sha256",
+      "backup_id",
+      "checked_at",
+      "checks",
+      "components",
+      "status",
+      "warnings"
+    ],
+    "required_status_for_apply": "RESTORED",
+    "source": "scripts/restore.py::OperationsRestore._report",
+    "stdout_markers": [
+      "MANIFEST_BACKUP_ID=",
+      "RESTORE_ARCHIVE=",
+      "RESTORE_COMPONENTS=",
+      "RESTORE_REPORT=",
+      "RESTORE_STATUS="
+    ]
+  },
+  "schema": "hydraulic-compose-restore-manifest-v1",
+  "services": {
+    "influx": {
+      "backup_arg_default": "influxdb",
+      "restore_arg_default": "influxdb"
+    },
+    "postgres": {
+      "backup_arg_default": "postgres",
+      "restore_arg_default": "postgres"
+    },
+    "redis": {
+      "backup_arg_default": "redis",
+      "restore_arg_default": "redis"
+    },
+    "source": "scripts/backup.py::build_parser, scripts/restore.py::build_parser"
+  },
+  "statement": "This file freezes the G6 backup -> destroy -> restore contract only. It declares required commands, manifest fields, and assertion predicates. It contains no observed restore hash, no measured latency, and no gate result; a value here is never execution evidence and cannot make G6 or AC-8 pass."
+}

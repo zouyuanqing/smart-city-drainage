@@ -1,0 +1,174 @@
+[
+  {
+    "id": "parent-traversal",
+    "filename": "../escape.inp",
+    "content": "[TITLE]\n",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "nested-traversal",
+    "filename": "nested/../../escape.inp",
+    "content": "[TITLE]\n",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "absolute-posix",
+    "filename": "/etc/smart-drainage/escape.inp",
+    "content": "[TITLE]\n",
+    "multipart": "raw",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "windows-drive",
+    "filename": "C:\\Windows\\system.ini",
+    "content": "[TITLE]\n",
+    "multipart": "raw",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "windows-forward-slash",
+    "filename": "C:/Windows/system.ini",
+    "content": "[TITLE]\n",
+    "multipart": "raw",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "unc-path",
+    "filename": "\\\\server\\share\\rain.inp",
+    "content": "[TITLE]\n",
+    "multipart": "raw",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "ads-path",
+    "filename": "safe.inp:payload",
+    "content": "[TITLE]\n",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "encoded-traversal",
+    "filename": "..%2Fescape.inp",
+    "content": "[TITLE]\n",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "leading-dot",
+    "filename": ".hidden.inp",
+    "content": "[TITLE]\n",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "filename-space",
+    "filename": "safe file.inp",
+    "content": "[TITLE]\n",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "unsupported-extension",
+    "filename": "payload.py",
+    "content": "print('not allowed')\n",
+    "expected_status": 415,
+    "expected_code": "UNSUPPORTED_IMPORT_FORMAT"
+  },
+  {
+    "id": "zip-magic",
+    "filename": "archive.inp",
+    "content_hex": "504b0304",
+    "expected_status": 415,
+    "expected_code": "UNSUPPORTED_IMPORT_FORMAT"
+  },
+  {
+    "id": "bounded-zip-ratio-bomb",
+    "filename": "bounded-archive.inp",
+    "content_kind": "zip-ratio-bomb",
+    "expected_status": 415,
+    "expected_code": "UNSUPPORTED_IMPORT_FORMAT"
+  },
+  {
+    "id": "truncated-zip",
+    "filename": "truncated-archive.inp",
+    "content_hex": "504b030400",
+    "expected_status": 415,
+    "expected_code": "UNSUPPORTED_IMPORT_FORMAT"
+  },
+  {
+    "id": "truncated-inp",
+    "filename": "truncated.inp",
+    "content": "[JUNCTIONS]\nJ1",
+    "expected_status": 422,
+    "expected_code": "INVALID_INP"
+  },
+  {
+    "id": "script-content",
+    "filename": "payload.inp",
+    "content": "#!/usr/bin/env python\nprint('not allowed')\n",
+    "expected_status": 422,
+    "expected_code": "INVALID_INP"
+  },
+  {
+    "id": "unsafe-content-reference",
+    "filename": "safe.inp",
+    "content": "[TIMESERIES]\nTS1 FILE ../outside.dat\n",
+    "expected_status": 422,
+    "expected_code": "UNSAFE_PATH"
+  },
+  {
+    "id": "empty-upload",
+    "filename": "empty.inp",
+    "content": "",
+    "expected_status": 400,
+    "expected_code": "MALFORMED_REQUEST"
+  },
+  {
+    "id": "invalid-utf8",
+    "filename": "bad.inp",
+    "content_hex": "5b5449544c455d0aff",
+    "expected_status": 422,
+    "expected_code": "INVALID_ENCODING"
+  },
+  {
+    "id": "nan-geojson",
+    "filename": "nan.geojson",
+    "content": "{\"type\":\"FeatureCollection\",\"features\":[],\"value\":NaN}",
+    "expected_status": 422,
+    "expected_code": "INVALID_GEOJSON"
+  },
+  {
+    "id": "deep-geojson",
+    "filename": "deep.geojson",
+    "content_kind": "deep-json",
+    "expected_status": 422,
+    "expected_code": "INVALID_GEOJSON"
+  },
+  {
+    "id": "duplicate-stable-key",
+    "filename": "duplicate-key.geojson",
+    "content": "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"id\":\"N-DUP\",\"geometry\":{\"type\":\"Point\",\"coordinates\":[121.3,31.2]},\"properties\":{\"stable_key\":\"N-DUP\"}},{\"type\":\"Feature\",\"id\":\"N-DUP\",\"geometry\":{\"type\":\"Point\",\"coordinates\":[121.4,31.3]},\"properties\":{\"stable_key\":\"N-DUP\"}}]}",
+    "expected_status": 422,
+    "expected_code": "INVALID_GEOJSON"
+  },
+  {
+    "id": "duplicate-fanout-resource-sample",
+    "filename": "duplicate-fanout.geojson",
+    "content_kind": "duplicate-fanout",
+    "expected_status": 422,
+    "expected_code": "INVALID_GEOJSON"
+  },
+  {
+    "id": "oversized",
+    "filename": "oversized.inp",
+    "content_kind": "oversized-inp",
+    "expected_status": 413,
+    "expected_code": "INPUT_TOO_LARGE"
+  }
+]

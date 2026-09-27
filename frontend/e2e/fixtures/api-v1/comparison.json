@@ -1,0 +1,41 @@
+{
+  "schema_version": "simulation-comparison-v2",
+  "compatible": true,
+  "network_revision_id": "22222222-2222-4222-8222-222222222222",
+  "target_manifest_id": "33333333-3333-4333-8333-333333333333",
+  "target_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "frame_grid": {
+    "start_at": "2026-09-24T00:00:00Z",
+    "end_at": "2026-09-24T00:05:00Z",
+    "interval_seconds": 300,
+    "frame_count": 2
+  },
+  "baseline": {
+    "simulation_id": "55555555-5555-4555-8555-555555555555",
+    "published_attempt_id": "77777777-7777-4777-8777-777777777777",
+    "published_attempt_no": 1,
+    "rainfall_scenario_id": "44444444-4444-4444-8444-444444444444",
+    "solver": "py_mw",
+    "parameters_hash": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+  },
+  "candidate": {
+    "simulation_id": "66666666-6666-4666-8666-666666666666",
+    "published_attempt_id": "88888888-8888-4888-8888-888888888888",
+    "published_attempt_no": 1,
+    "rainfall_scenario_id": "99999999-9999-4999-8999-999999999998",
+    "solver": "py_mw",
+    "parameters_hash": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  },
+  "metrics": [
+    {
+      "key": "max_node_depth_m",
+      "label": "Max node depth",
+      "unit": "m",
+      "baseline": 0.76,
+      "candidate": 0.62,
+      "absolute_delta": -0.14,
+      "relative_delta": -0.1842105263,
+      "better_direction": "lower"
+    }
+  ]
+}

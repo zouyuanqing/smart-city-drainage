@@ -7,10 +7,16 @@ API 路由汇总
 
 from __future__ import annotations
 
+import asyncio
+import base64
 import csv
 import io
+import os
+import tempfile
 import uuid
+from collections.abc import Sequence
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import (
@@ -28,12 +34,25 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sse_starlette.sse import EventSourceResponse
 
+from app.api.hydraulic_routes import router as hydraulic_router
+from app.core.config import settings
 from app.core.database import get_db_session
-from app.core.model_manager import get_model_manager
+from app.core.model_manager import (
+    MODEL_EXTENSIONS,
+    UnsafeModelPath,
+    get_model_manager,
+    model_storage_root,
+    safe_model_path,
+    validate_model_version,
+)
 from app.core.security import (
+    OutboundURLRejected,
+    authenticate_access_token,
     create_access_token,
+    extract_bearer_token,
     require_auth,
     require_role,
+    resolve_outbound_url,
     verify_password,
 )
 from app.models.db_models import Alert as AlertModel
@@ -57,9 +76,124 @@ from app.services.mock_data_generator import mock_generator
 from app.services.sse_manager import SSEManager
 from app.services.stream_service import stream_service
 from app.services.system_status import get_system_status
+from app.workers.inference_worker import MediaResourceLimitExceeded
 
 router = APIRouter(prefix="/api")
 sse_manager = SSEManager.get_instance()
+_MAX_INFERENCE_IMAGE_BYTES = 10 * 1024 * 1024
+
+
+async def _authenticate_websocket_token(token: str) -> dict[str, Any] | None:
+    """Validate a WebSocket token against the current user in deployments."""
+    try:
+        async with get_db_session() as db:
+            return await authenticate_access_token(token, db)
+    except HTTPException:
+        return None
+
+
+async def _require_websocket_role(
+    websocket: WebSocket, allowed_roles: set[str]
+) -> dict[str, Any] | None:
+    """Authenticate header-capable and native-browser control clients.
+
+    Browser WebSocket constructors cannot set Authorization headers and query
+    credentials leak into history/proxy logs. When a header is absent, accept
+    the socket and require one short-lived authentication frame immediately.
+    """
+    token = extract_bearer_token(websocket.headers.get("authorization"))
+    if token is None:
+        await websocket.accept()
+        try:
+            message = await asyncio.wait_for(websocket.receive_json(), timeout=5.0)
+        except (
+            asyncio.TimeoutError,
+            WebSocketDisconnect,
+            RuntimeError,
+            TypeError,
+            ValueError,
+        ):
+            await websocket.close(code=1008)
+            return None
+        if (
+            not isinstance(message, dict)
+            or message.get("type") != "authenticate"
+            or not isinstance(message.get("token"), str)
+            or len(message["token"]) > 8192
+        ):
+            await websocket.close(code=1008)
+            return None
+        token = message["token"]
+
+    claims = await _authenticate_websocket_token(token)
+    role = claims.get("role") if claims is not None else None
+    if not isinstance(role, str) or role not in allowed_roles:
+        await websocket.close(code=1008)
+        return None
+
+    await websocket.accept()
+    return claims
+
+
+async def _fetch_public_image(url: str) -> bytes:
+    """Fetch an image with redirect, address and response-size checks."""
+    import httpx
+
+    current_url = url
+    timeout = httpx.Timeout(10.0, connect=5.0)
+    try:
+        async with httpx.AsyncClient(
+            follow_redirects=False,
+            timeout=timeout,
+            trust_env=False,
+        ) as client:
+            for _ in range(3):
+                target = resolve_outbound_url(
+                    current_url, allowed_schemes={"http", "https"}
+                )
+                request_extensions = (
+                    {"sni_hostname": target.sni_hostname}
+                    if httpx.URL(target.connection_url).scheme == "https"
+                    else {}
+                )
+                async with client.stream(
+                    "GET",
+                    target.connection_url,
+                    headers={"Host": target.host_header},
+                    extensions=request_extensions,
+                ) as response:
+                    if response.status_code in {301, 302, 303, 307, 308}:
+                        location = response.headers.get("location")
+                        if not location:
+                            raise OutboundURLRejected(
+                                "outbound redirect has no location"
+                            )
+                        current_url = str(httpx.URL(current_url).join(location))
+                        continue
+                    if response.status_code >= 400:
+                        raise OutboundURLRejected("outbound image request failed")
+                    content_length = response.headers.get("content-length")
+                    if content_length:
+                        try:
+                            if int(content_length) > _MAX_INFERENCE_IMAGE_BYTES:
+                                raise OutboundURLRejected("outbound image is too large")
+                        except ValueError as exc:
+                            raise OutboundURLRejected(
+                                "outbound image length is invalid"
+                            ) from exc
+                    chunks: list[bytes] = []
+                    size = 0
+                    async for chunk in response.aiter_bytes():
+                        size += len(chunk)
+                        if size > _MAX_INFERENCE_IMAGE_BYTES:
+                            raise OutboundURLRejected("outbound image is too large")
+                        chunks.append(chunk)
+                    return b"".join(chunks)
+    except OutboundURLRejected:
+        raise
+    except (httpx.HTTPError, OSError) as exc:
+        raise OutboundURLRejected("outbound image request failed") from exc
+    raise OutboundURLRejected("too many outbound redirects")
 
 
 # ============================================================
@@ -94,13 +228,16 @@ async def system_status():
 @router.post("/auth/login", response_model=TokenResponse)
 async def login(request: TokenRequest):
     user = None
+    auth_backend_unavailable = False
     try:
         async with get_db_session() as db:
             result = await db.execute(
                 select(UserModel).where(UserModel.username == request.username)
             )
             user = result.scalar_one_or_none()
-            if user is not None and user.is_active:
+            if user is not None:
+                if not user.is_active:
+                    raise HTTPException(status_code=401, detail="用户名或密码错误")
                 if not verify_password(request.password, user.hashed_password):
                     raise HTTPException(status_code=401, detail="用户名或密码错误")
                 user.last_login = datetime.now(timezone.utc)
@@ -109,8 +246,17 @@ async def login(request: TokenRequest):
         raise
     except Exception:
         user = None
+        auth_backend_unavailable = True
 
     if user is None:
+        # The fixed demo identity is opt-in and never available in production,
+        # so a database outage can not mint a repository-credential admin token.
+        if not settings.auth_fallback_admin_allowed:
+            if auth_backend_unavailable:
+                raise HTTPException(
+                    status_code=503, detail="认证后端暂时不可用，请稍后重试"
+                )
+            raise HTTPException(status_code=401, detail="用户名或密码错误")
         if request.username == "admin" and request.password == "Admin@123456":
             user = type(
                 "FallbackUser",
@@ -126,13 +272,14 @@ async def login(request: TokenRequest):
         else:
             raise HTTPException(status_code=401, detail="用户名或密码错误")
 
-    expires_delta = timedelta(minutes=1440)
+    expires_minutes = settings.ACCESS_TOKEN_EXPIRE_MINUTES
     access_token = create_access_token(
         subject=str(user.id),
-        expires_delta=expires_delta,
+        expires_delta=timedelta(minutes=expires_minutes),
         extra_claims={
             "username": user.username,
             "role": user.role.value if isinstance(user.role, RoleEnum) else user.role,
+            "is_active": True,
         },
     )
 
@@ -141,7 +288,7 @@ async def login(request: TokenRequest):
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        expires_in=1440 * 60,
+        expires_in=expires_minutes * 60,
         role=user_role,
         user=UserBrief(
             id=user.id,
@@ -188,6 +335,7 @@ async def switch_model(
     manager = get_model_manager()
 
     try:
+        validate_model_version(request.target_version)
         # 使用后台线程异步切换
         manager.switch_model_async(request.target_version)
         return {
@@ -213,26 +361,57 @@ async def upload_model(
     """
     from app.core.config import settings
 
-    if not file.filename or not file.filename.endswith((".pt", ".onnx", ".engine")):
+    if not file.filename:
+        raise HTTPException(status_code=415, detail="模型文件名不能为空")
+    ext = Path(file.filename).suffix.lower()
+    if ext not in MODEL_EXTENSIONS:
         raise HTTPException(
-            status_code=400,
+            status_code=415,
             detail="不支持的文件格式，请上传 .pt / .onnx / .engine 文件",
         )
 
     import hashlib
 
-    # 确定存储路径
-    ext = file.filename.rsplit(".", 1)[-1]
-    save_path = settings.model_storage_dir / f"{version}.{ext}"
+    try:
+        version = validate_model_version(version)
+        root = model_storage_root()
+        save_path = safe_model_path(version, ext, root=root)
+    except UnsafeModelPath as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
-    # 计算 SHA256
+    max_bytes = int(settings.MAX_UPLOAD_SIZE_MB) * 1024 * 1024
+    if max_bytes <= 0:
+        raise HTTPException(status_code=503, detail="模型上传大小限制未配置")
+
+    # 先写同目录临时文件，超过限制时立即删除，成功后原子替换。
+    temporary_path: Path | None = None
     sha = hashlib.sha256()
     size_bytes = 0
-    with save_path.open("wb") as f:
-        while chunk := await file.read(8192):
-            f.write(chunk)
-            sha.update(chunk)
-            size_bytes += len(chunk)
+    try:
+        fd, temporary_name = tempfile.mkstemp(
+            prefix=f".{version}.", suffix=".part", dir=str(root)
+        )
+        temporary_path = Path(temporary_name)
+        with os.fdopen(fd, "wb") as output:
+            while chunk := await file.read(8192):
+                size_bytes += len(chunk)
+                if size_bytes > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"模型文件不能超过 {settings.MAX_UPLOAD_SIZE_MB} MB",
+                    )
+                output.write(chunk)
+                sha.update(chunk)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(temporary_path, save_path)
+        temporary_path = None
+    finally:
+        if temporary_path is not None:
+            try:
+                temporary_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
     # 扫描仓库
     manager = get_model_manager()
@@ -240,7 +419,7 @@ async def upload_model(
 
     return ModelUploadResponse(
         version=version,
-        file_path=str(save_path.resolve()),
+        file_path=save_path.name,
         file_size_mb=round(size_bytes / 1e6, 2),
         sha256=sha.hexdigest(),
         message=f"模型 '{version}' 已上传，可通过 /api/models/switch 激活",
@@ -272,7 +451,10 @@ async def list_model_versions():
 
 
 @router.post("/inference/detect", response_model=InferenceResponse)
-async def detect_objects(request: InferenceRequest):
+async def detect_objects(
+    request: InferenceRequest,
+    current_user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
     """
     YOLO 目标检测推理
 
@@ -280,8 +462,9 @@ async def detect_objects(request: InferenceRequest):
     """
     try:
         if request.image_url:
-            result = await inference_service.infer_from_url(
-                request.image_url,
+            image_bytes = await _fetch_public_image(request.image_url)
+            result = await inference_service.infer_from_base64(
+                base64.b64encode(image_bytes).decode("ascii"),
                 confidence_threshold=request.confidence_threshold,
                 iou_threshold=request.iou_threshold,
                 return_annotated=request.return_annotated,
@@ -300,6 +483,8 @@ async def detect_objects(request: InferenceRequest):
 
         return InferenceResponse(**result)
 
+    except OutboundURLRejected as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     except RuntimeError as exc:
@@ -320,9 +505,14 @@ async def start_stream(
 ):
     """启动 RTSP → HLS 转码"""
     try:
+        target = resolve_outbound_url(
+            request.stream_url,
+            allowed_schemes={"rtsp", "rtsps", "rtmp", "rtmps"},
+        )
         stream = await stream_service.start_stream(
             camera_id=str(request.device_id),
-            rtsp_url=request.stream_url,
+            rtsp_url=target.connection_url,
+            source_url=request.stream_url,
         )
         return {
             "camera_id": stream.camera_id,
@@ -330,6 +520,10 @@ async def start_stream(
             "status": "started" if stream.is_healthy else "error",
             "error": stream.error_message,
         }
+    except OutboundURLRejected as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except MediaResourceLimitExceeded as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"启动转码失败: {exc}")
 
@@ -357,17 +551,20 @@ async def start_inference(
 ):
     from app.services.stream_service import stream_service
 
-    stream_info = stream_service.streams.get(camera_id)
+    stream_info = stream_service.get_stream(camera_id)
     if not stream_info:
         raise HTTPException(status_code=404, detail="视频流不存在")
     try:
-        stream_service.worker_pool.add_worker(
+        await stream_service.worker_pool.add_worker(
             camera_id=camera_id,
-            stream_url=stream_info.source_url,
+            stream_url=getattr(stream_info, "connection_url", stream_info.source_url),
+            host_header=getattr(stream_info, "host_header", None),
             inference_interval=2.0,
             confidence_threshold=0.45,
         )
         return {"camera_id": camera_id, "inference": "started"}
+    except MediaResourceLimitExceeded as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"启动推理失败: {exc}")
 
@@ -380,7 +577,7 @@ async def stop_inference(
     from app.services.stream_service import stream_service
 
     try:
-        stream_service.worker_pool.remove_worker(camera_id)
+        await stream_service.worker_pool.remove_worker(camera_id)
         return {"camera_id": camera_id, "inference": "stopped"}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"停止推理失败: {exc}")
@@ -428,7 +625,13 @@ async def websocket_control(websocket: WebSocket):
       - 前端发送控制指令 (如 PTZ 云台控制)
       - 后端推送设备状态变更
     """
-    await websocket.accept()
+    if (
+        await _require_websocket_role(
+            websocket, {RoleEnum.admin.value, RoleEnum.operator.value}
+        )
+        is None
+    ):
+        return
     client_id = str(uuid.uuid4())[:8]
     logger = __import__("logging").getLogger(__name__)
     logger.info("🔌 WebSocket 客户端连接: %s", client_id)
@@ -660,58 +863,52 @@ async def export_sensor_data(
 ):
     """导出传感器历史数据"""
     try:
-        from app.core.config import settings
         from app.services.influxdb_service import influxdb_service
 
-        if influxdb_service and influxdb_service._client:
-            tables = influxdb_service._query_api.query_data_frame(
-                f'from(bucket: "{settings.INFLUXDB_BUCKET}")'
-                f'  |> range(start: {start_time or "-30d"}, stop: {end_time or "now()"})'
-                f'  |> filter(fn: (r) => r._measurement == "sensor_readings")'
-                + (
-                    f'  |> filter(fn: (r) => r.device_id == "{device_id}")'
-                    if device_id
-                    else ""
-                ),
-                org=settings.INFLUXDB_ORG,
-            )
-            if isinstance(tables, list) and len(tables) > 0:
-                import pandas as pd
-
-                df = pd.concat(tables)
-            elif hasattr(tables, "empty") and not tables.empty:
-                import pandas as pd
-
-                df = tables
-            else:
-                df = None
-        else:
-            df = None
+        tables = influxdb_service.query_sensor_export(
+            device_id=device_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
+        rows: list[dict[str, Any]] = []
+        for table in tables or []:
+            for record in getattr(table, "records", []):
+                values = record.values
+                rows.append(
+                    {
+                        "_time": (
+                            record.get_time().isoformat() if record.get_time() else ""
+                        ),
+                        "device_id": values.get("device_id", ""),
+                        "_field": values.get("_field", ""),
+                        "_value": values.get("_value", ""),
+                    }
+                )
     except Exception:
-        df = None
+        rows = []
 
     output = io.StringIO()
     if format == "csv":
         writer = csv.writer(output)
         writer.writerow(["timestamp", "device_id", "field", "value"])
-        if df is not None:
-            import pandas as pd
-
-            for _, row in df.iterrows():
-                writer.writerow(
-                    [
-                        row.get("_time", ""),
-                        row.get("device_id", ""),
-                        row.get("_field", ""),
-                        row.get("_value", ""),
-                    ]
-                )
+        for row in rows:
+            writer.writerow(
+                [
+                    row.get("_time", ""),
+                    row.get("device_id", ""),
+                    row.get("_field", ""),
+                    row.get("_value", ""),
+                ]
+            )
         output.seek(0)
         return StreamingResponse(
             iter([output.getvalue()]),
             media_type="text/csv",
             headers={
-                "Content-Disposition": f"attachment; filename=sensor_data_{datetime.now().strftime('%Y%m%d')}.csv"
+                "Content-Disposition": (
+                    f"attachment; filename=sensor_data_"
+                    f"{datetime.now().strftime('%Y%m%d')}.csv"
+                ),
             },
         )
 
@@ -812,7 +1009,7 @@ async def export_alert_data(
     """导出告警记录"""
     from app.models.db_models import Alert
 
-    alerts = []
+    alerts: Sequence[Alert] = ()
     try:
         async with get_db_session() as db:
             query = select(Alert).order_by(Alert.created_at.desc())
@@ -857,7 +1054,10 @@ async def export_alert_data(
         iter([output.getvalue()]),
         media_type="text/csv",
         headers={
-            "Content-Disposition": f"attachment; filename=alerts_{datetime.now().strftime('%Y%m%d')}.csv"
+            "Content-Disposition": (
+                f"attachment; filename=alerts_"
+                f"{datetime.now().strftime('%Y%m%d')}.csv"
+            ),
         },
     )
 
@@ -1050,7 +1250,10 @@ async def get_mock_config():
 
 
 @router.put("/mock/config")
-async def update_mock_config(config: dict[str, Any]):
+async def update_mock_config(
+    config: dict[str, Any],
+    user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
     """更新模拟数据生成器配置 (可运行时调节)"""
     if "alert_interval_seconds" in config:
         mock_generator.alert_interval_seconds = float(config["alert_interval_seconds"])
@@ -1064,14 +1267,24 @@ async def update_mock_config(config: dict[str, Any]):
 
 
 @router.post("/mock/start")
-async def start_mock_data():
-    """启动模拟数据生成 (演示模式无需认证)"""
+async def start_mock_data(
+    user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
+    """启动模拟数据生成 (仅 operator/admin)"""
     await mock_generator.start()
     return {"status": "started", "message": "模拟数据生成已启动"}
 
 
 @router.post("/mock/stop")
-async def stop_mock_data():
-    """停止模拟数据生成 (演示模式无需认证)"""
+async def stop_mock_data(
+    user: dict = Depends(require_role(RoleEnum.admin, RoleEnum.operator)),
+):
+    """停止模拟数据生成 (仅 operator/admin)"""
     await mock_generator.stop()
     return {"status": "stopped", "message": "模拟数据生成已停止"}
+
+
+# Hydraulic routes are included after the legacy routes so existing public
+# paths keep their precedence while the new /api surface remains one OpenAPI
+# document.
+router.include_router(hydraulic_router)

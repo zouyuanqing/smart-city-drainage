@@ -1,0 +1,77 @@
+# Frozen G5 frontend target environment.
+#
+# `frontend/performance/run-twin-map.mjs` fail-closes unless the process it runs
+# in *is* the contracted target: Node 18.20.8, four CPU cores and 8 GiB of RAM
+# (`run-twin-map.mjs:35-37`, `detectEnvironment` at `:333-360`). The harness can
+# only observe the core and memory limits through Linux cgroups
+# (`detectCgroupCpuLimit` at `:269`, `detectCgroupMemoryLimit` at `:284`), so the
+# contracted environment is reproducible only in a container started with
+# `--cpus=4 --memory=8g`. A Windows or macOS host reports the machine's physical
+# core count and total memory no matter how the process is confined, so it can
+# never satisfy the contract and must be recorded as a host mismatch instead.
+#
+# This image exists to supply that environment. It changes nothing about the
+# measurement: the entrypoint stays the frozen `node performance/run-twin-map.mjs`,
+# the frozen fixture is used as-is, the 60 s duration and the 25 fps / 50 ms rAF
+# p95 budgets are untouched, and the image carries the production Vite toolchain
+# the harness builds the browser bundle with.
+#
+# Build with `frontend/` as the context (see scripts/run_frontend_g5_perf.sh):
+#   docker build -f ../docker/frontend/Dockerfile.g5-perf \
+#     --build-arg NODE_IMAGE=… --build-arg NPM_REGISTRY=… .
+#
+# Mirrors are build arguments for the same reason PIP_INDEX_URL and
+# DEBIAN_MIRROR are in docker/backend/Dockerfile.cpu: a network that cannot
+# reach a canonical host should be a build argument, not a hard-coded endpoint.
+# The defaults are the canonical hosts.
+
+# Digest-pinned so the measured Node runtime is the contracted one and cannot
+# drift with the tag. A registry mirror serves this same digest.
+ARG NODE_IMAGE=node:18.20.8-alpine@sha256:8d6421d663b4c28fd3ebc498332f249011d118945588d0a35cb9bc4bf8b8ca09d9e
+ARG ALPINE_MIRROR=https://dl-cdn.alpinelinux.org
+ARG NPM_REGISTRY=https://registry.npmjs.org/
+
+FROM ${NODE_IMAGE}
+
+# The frozen harness launches a real headless browser (findChrome at
+# `run-twin-map.mjs:585-608` probes /usr/bin/chromium among others) and runs it
+# with --disable-gpu, so the measurement is a software rasterisation pass and the
+# browser must be present in the image.
+RUN set -eux; \
+    if [ "$ALPINE_MIRROR" != "https://dl-cdn.alpinelinux.org" ]; then \
+        sed -i "s|https://dl-cdn.alpinelinux.org|$ALPINE_MIRROR|g" /etc/apk/repositories; \
+        grep -q "$ALPINE_MIRROR" /etc/apk/repositories; \
+    fi; \
+    apk add --no-cache chromium; \
+    chromium --version
+
+WORKDIR /workspace
+
+# .npmrc (engine-strict) must be copied before npm ci so a wrong runtime fails
+# fast instead of warning, exactly as in docker/frontend/Dockerfile.
+COPY package.json package-lock.json .npmrc ./frontend/
+# --replace-registry-host keeps the frozen lockfile byte-identical (the harness
+# hashes package-lock.json into dependency_lock_sha256) while resolving the
+# tarballs named in it through the reachable registry.
+RUN cd frontend \
+    && npm ci \
+        --no-audit \
+        --no-fund \
+        --registry="$NPM_REGISTRY" \
+        --replace-registry-host=always \
+    && npm ls --depth=0 >/dev/null
+
+# The browser bundle the harness builds is compiled from the real ViewportIndex,
+# Canvas controller and FrameCache sources, so the measured code is the shipped
+# code. Nothing here rewrites the entrypoint or the fixture.
+COPY src ./frontend/src
+COPY public ./frontend/public
+COPY performance ./frontend/performance
+COPY index.html vite.config.ts tsconfig.json tsconfig.node.json \
+     postcss.config.js tailwind.config.js ./frontend/
+
+ENV CHROME_PATH=/usr/bin/chromium
+
+# The frozen entrypoint, unchanged. The runner passes --fixture/--duration-seconds
+# /--output and the resource limits that make the contract satisfiable.
+CMD ["node", "performance/run-twin-map.mjs"]

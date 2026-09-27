@@ -1,0 +1,21 @@
+{
+  "schema": "acceptance-rainfall-50y-24h-v1",
+  "fixture_role": "request_contract_smoke",
+  "is_ac3_evidence": false,
+  "missing_evidence": [
+    "real four-core solver execution",
+    "quality and conservation report",
+    "289 persisted non-empty frame checksums",
+    "worker progress, cancel, retry, kill and cleanup",
+    "map timeline replay"
+  ],
+  "kind": "design",
+  "return_period_years": 50,
+  "step_seconds": 300,
+  "duration_seconds": 86400,
+  "start_at": "2026-09-25T00:00:00Z",
+  "point_count": 289,
+  "expected_frame_count": 289,
+  "intensity_pattern_mm_h": [0.0, 2.0, 5.0, 8.0, 12.0, 16.0, 20.0, 16.0, 12.0, 8.0, 5.0, 2.0],
+  "expected_solver_ids": ["py_mw", "swmm_kw"]
+}

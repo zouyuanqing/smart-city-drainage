@@ -1,0 +1,65 @@
+{
+  "schema": "acceptance-legacy-api-v2",
+  "read_paths": [
+    {
+      "path": "/api/health",
+      "status": 200,
+      "required_keys": ["status", "timestamp", "version", "model_ready", "active_model", "sse_clients"]
+    },
+    {
+      "path": "/api/alerts",
+      "status": 200,
+      "required_keys": ["alerts", "total"]
+    },
+    {
+      "path": "/api/sensors/latest",
+      "status": 200,
+      "required_keys": ["readings", "timestamp", "source"]
+    }
+  ],
+  "sse": {
+    "path": "/api/sse/events",
+    "last_event_id": "42",
+    "content_type": "text/event-stream",
+    "events": [
+      {
+        "name": "connected",
+        "data": {
+          "client_id": "legacy-client",
+          "status": "connected"
+        }
+      },
+      {
+        "name": "sensors",
+        "id": "43",
+        "data": {
+          "readings": [{"device_id": "legacy-sensor", "value": 1.25}],
+          "timestamp": "2026-09-25T10:00:00Z"
+        }
+      },
+      {
+        "name": "alerts",
+        "id": "44",
+        "data": {
+          "alert": {"id": "legacy-alert", "level": "warning"},
+          "timestamp": "2026-09-25T10:01:00Z"
+        }
+      },
+      {
+        "name": "system",
+        "id": "45",
+        "data": {
+          "status": "healthy",
+          "timestamp": "2026-09-25T10:02:00Z"
+        }
+      }
+    ]
+  },
+  "required_openapi_paths": [
+    "/api/health",
+    "/api/auth/login",
+    "/api/sse/events",
+    "/api/alerts",
+    "/api/devices"
+  ]
+}

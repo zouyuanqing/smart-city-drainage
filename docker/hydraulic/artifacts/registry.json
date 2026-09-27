@@ -1,0 +1,25 @@
+{
+  "artifacts": [
+    {
+      "artifact_id": "22222222-2222-4222-8222-222222222222",
+      "file": "flood_forecast_probability_v1.json",
+      "sha256": "eff9d4a3ae96a7c36808316d9e7a6ab56c71d053df644121113f156da3368352"
+    },
+    {
+      "artifact_id": "33333333-3333-4333-8333-333333333333",
+      "file": "pipe_surcharge_probability_v1.json",
+      "sha256": "35f7551fd350f4d883500c4852622cf7d67cb99d6447284c4173e7f0b4494596"
+    },
+    {
+      "artifact_id": "44444444-4444-4444-8444-444444444444",
+      "file": "flood_forecast_rule_v1.json",
+      "sha256": "6162d10306c1777ad09c669480928be899430cd3e7fb238be70812ebcbb2adf7"
+    },
+    {
+      "artifact_id": "55555555-5555-4555-8555-555555555555",
+      "file": "pipe_surcharge_rule_v1.json",
+      "sha256": "30b881c1a78b5eedd61098305e0139dd7b9b0aa0d4b3ae348bb2452a5ee63ba8"
+    }
+  ],
+  "schema_version": 1
+}

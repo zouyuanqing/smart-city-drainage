@@ -34,6 +34,12 @@ export function useWebSocket(options: UseWebSocketOptions = {}): UseWebSocketRet
     wsRef.current = ws
 
     ws.onopen = () => {
+      const token = localStorage.getItem('scn_access_token')
+      if (!token) {
+        ws.close(1008, 'authentication required')
+        return
+      }
+      ws.send(JSON.stringify({ type: 'authenticate', token }))
       setIsConnected(true)
       onConnected?.()
     }

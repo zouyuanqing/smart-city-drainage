@@ -1,0 +1,37 @@
+{
+  "data_state": "ready",
+  "generated_at": "2026-09-24T01:00:00Z",
+  "forecast_origin_at": "2026-09-24T01:00:00Z",
+  "issued_at": "2026-09-24T01:00:05Z",
+  "alerts": [
+    {
+      "id": "alert-flood-001",
+      "alert_type": "flood_forecast",
+      "phase": "predicted",
+      "status": "open",
+      "target_type": "node",
+      "target_id": "node-0042",
+      "target_label": "泵站前节点 0042",
+      "expected_at": "2026-09-24T01:35:00Z",
+      "lead_time_minutes": 34,
+      "predicted_depth_m": 0.86,
+      "confidence": 0.91,
+      "simulation_id": "sim-nowcast-001",
+      "network_revision_id": "revision-50y-24h-v1"
+    }
+  ],
+  "risk_ranking": [
+    {
+      "rank": 1,
+      "target_id": "node-0042",
+      "risk_score": 0.91,
+      "alert_type": "flood_forecast"
+    },
+    {
+      "rank": 2,
+      "target_id": "pipe-0317",
+      "risk_score": 0.84,
+      "alert_type": "pipe_surcharge"
+    }
+  ]
+}

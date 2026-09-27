@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 from app.core.config import settings
+
+if TYPE_CHECKING:  # influxdb_client is an optional runtime dependency
+    from influxdb_client import InfluxDBClient
 
 logger = logging.getLogger(__name__)
 
@@ -14,9 +17,11 @@ class InfluxDBService:
     _instance: Optional["InfluxDBService"] = None
 
     def __init__(self) -> None:
-        self._client = None
-        self._write_api = None
-        self._query_api = None
+        # Annotated so the handles keep their real types; a bare ``None``
+        # default made every handle call a type error.
+        self._client: Optional[InfluxDBClient] = None
+        self._write_api: Optional[Any] = None
+        self._query_api: Optional[Any] = None
         self._bucket = settings.INFLUXDB_BUCKET
         self._org = settings.INFLUXDB_ORG
 
@@ -64,7 +69,7 @@ class InfluxDBService:
         if not self._client:
             return False
         try:
-            return self._client.ping()
+            return bool(self._client.ping())
         except Exception:
             return False
 
@@ -127,24 +132,38 @@ class InfluxDBService:
     def get_latest_readings(
         self, device_ids: list[str] | None = None
     ) -> list[dict[str, Any]]:
-        """查询每个设备最新一条传感器读数"""
+        """查询每个设备最新一条传感器读数。
+
+        Flux 参数通过 Query API 的 ``params`` 绑定传入，用户提供的设备 ID
+        永远不会成为 Flux 源码的一部分。
+        """
         if not self._query_api:
             return []
         try:
+            params: dict[str, Any] = {"bucket": self._bucket}
             device_filter = ""
             if device_ids:
-                ids = " OR ".join([f'r["device_id"] == "{did}"' for did in device_ids])
-                device_filter = f"|> filter(fn: (r) => {ids})"
+                if len(device_ids) > 200:
+                    raise ValueError("too many device ids")
+                params["deviceIds"] = [str(device_id) for device_id in device_ids]
+                device_filter = (
+                    '|> filter(fn: (r) => contains(value: r["device_id"], '
+                    "set: params.deviceIds))"
+                )
 
             query = f"""
-            from(bucket: "{self._bucket}")
+            from(bucket: params.bucket)
               |> range(start: -1h)
               |> filter(fn: (r) => r["_measurement"] == "sensor_readings")
               {device_filter}
               |> last()
-              |> pivot(rowKey: ["device_id", "device_code"], columnKey: ["_field"], valueColumn: "_value")
+              |> pivot(
+                   rowKey: ["device_id", "device_code"],
+                   columnKey: ["_field"],
+                   valueColumn: "_value"
+                 )
             """
-            tables = self._query_api.query(query, org=self._org)
+            tables = self._query_api.query(query, org=self._org, params=params)
             results = []
             for table in tables:
                 for record in table.records:
@@ -175,20 +194,39 @@ class InfluxDBService:
         hours: int = 24,
         interval_minutes: int = 5,
     ) -> list[dict[str, Any]]:
-        """按时间范围和间隔聚合查询历史传感器数据"""
+        """按时间范围和间隔聚合查询历史传感器数据。"""
         if not self._query_api:
             return []
         try:
+            if not isinstance(hours, int) or not 1 <= hours <= 168:
+                raise ValueError("hours must be between 1 and 168")
+            if not isinstance(interval_minutes, int) or not 1 <= interval_minutes <= 60:
+                raise ValueError("interval_minutes must be between 1 and 60")
+            if not isinstance(device_id, str) or not device_id or len(device_id) > 128:
+                raise ValueError("device_id is invalid")
+            params = {
+                "bucket": self._bucket,
+                "deviceId": device_id,
+                "hours": hours,
+                "intervalMinutes": interval_minutes,
+            }
             query = f"""
-            from(bucket: "{self._bucket}")
+            from(bucket: params.bucket)
               |> range(start: -{hours}h)
               |> filter(fn: (r) => r["_measurement"] == "sensor_readings")
-              |> filter(fn: (r) => r["device_id"] == "{device_id}")
-              |> filter(fn: (r) => r["_field"] == "water_level_mm" or r["_field"] == "flow_rate_m3h")
-              |> aggregateWindow(every: {interval_minutes}m, fn: mean, createEmpty: false)
+              |> filter(fn: (r) => r["device_id"] == params.deviceId)
+              |> filter(
+                   fn: (r) => r["_field"] == "water_level_mm"
+                       or r["_field"] == "flow_rate_m3h"
+                 )
+              |> aggregateWindow(
+                   every: {interval_minutes}m,
+                   fn: mean,
+                   createEmpty: false
+                 )
               |> pivot(rowKey: ["_time"], columnKey: ["_field"], valueColumn: "_value")
             """
-            tables = self._query_api.query(query, org=self._org)
+            tables = self._query_api.query(query, org=self._org, params=params)
             results = []
             for table in tables:
                 for record in table.records:
@@ -211,6 +249,52 @@ class InfluxDBService:
         except Exception as exc:
             logger.error("InfluxDB 查询历史数据失败: %s", exc)
             return []
+
+    def build_sensor_export_query(
+        self,
+        device_id: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
+    ) -> tuple[str, dict[str, Any]]:
+        """Build a parameterized Flux export query.
+
+        The returned query contains no caller-controlled literals; callers
+        pass the returned params to the InfluxDB Query API unchanged.
+        """
+        params: dict[str, Any] = {
+            "bucket": self._bucket,
+            "startTime": start_time or "-30d",
+            "stopTime": end_time or "now()",
+        }
+        device_filter = ""
+        if device_id is not None:
+            if not isinstance(device_id, str) or not device_id or len(device_id) > 128:
+                raise ValueError("device_id is invalid")
+            params["deviceId"] = device_id
+            device_filter = '|> filter(fn: (r) => r["device_id"] == params.deviceId)'
+        query = f"""
+            from(bucket: params.bucket)
+              |> range(start: params.startTime, stop: params.stopTime)
+              |> filter(fn: (r) => r["_measurement"] == "sensor_readings")
+              {device_filter}
+        """
+        return query, params
+
+    def query_sensor_export(
+        self,
+        device_id: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
+    ) -> Any:
+        """Execute a Flux export query with bound parameters only."""
+        if not self._query_api:
+            return []
+        query, params = self.build_sensor_export_query(
+            device_id=device_id,
+            start_time=start_time,
+            end_time=end_time,
+        )
+        return self._query_api.query(query, org=self._org, params=params)
 
 
 influxdb_service = InfluxDBService.get_instance()

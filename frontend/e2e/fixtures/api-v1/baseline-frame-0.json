@@ -1,0 +1,30 @@
+{
+  "schema_version": "hydraulic-frame-v1",
+  "simulation_id": "55555555-5555-4555-8555-555555555555",
+  "network_revision_id": "22222222-2222-4222-8222-222222222222",
+  "target_manifest_id": "33333333-3333-4333-8333-333333333333",
+  "target_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "published_attempt_id": "77777777-7777-4777-8777-777777777777",
+  "published_attempt_no": 1,
+  "solver_id": "py_mw",
+  "solver_version": "solver-v1",
+  "frame_index": 0,
+  "frame_time": "2026-09-24T00:00:00Z",
+  "interval_seconds": 300,
+  "nodes": {
+    "feature_index": [0, 1, 2],
+    "depth_m": [0.2, 0.25, 0.74],
+    "fill_ratio": [0.1, 0.15, 0.74],
+    "surcharged": [false, false, true]
+  },
+  "pipes": {
+    "feature_index": [0, 1],
+    "fill_ratio": [0.4, 0.5],
+    "flow_m3s": [0.8, 0.4],
+    "depth_m": [0.35, 0.22],
+    "surcharged": [false, false]
+  },
+  "ponding": { "feature_index": [] },
+  "quality": { "status": "verified", "mass_residual_relative": 0.0001 },
+  "checksum": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+}

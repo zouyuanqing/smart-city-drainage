@@ -1,0 +1,36 @@
+groups:
+  - name: hydraulic.recording
+    interval: 15s
+    rules:
+      - record: hydraulic:simulation_queue_depth
+        expr: sum(simulation_queue_depth)
+
+      - record: hydraulic:simulation_oldest_queued_seconds
+        expr: max(simulation_oldest_queued_seconds)
+
+      - record: hydraulic:simulation_active_slots
+        expr: sum(simulation_active_slots)
+
+      - record: hydraulic:simulation_completed_per_second_5m
+        expr: sum(rate(simulation_duration_seconds_count{status="completed"}[5m]))
+
+      - record: hydraulic:simulation_failed_per_second_5m
+        expr: sum(rate(simulation_duration_seconds_count{status="failed"}[5m]))
+
+      - record: hydraulic:simulation_failure_ratio5m
+        expr: sum(rate(simulation_failures_total[5m])) / clamp_min(sum(rate(simulation_duration_seconds_count[5m])), 0.001)
+
+      - record: hydraulic:simulation_duration_seconds_p95_5m
+        expr: histogram_quantile(0.95, sum by (le, solver, status) (rate(simulation_duration_seconds_bucket[5m])))
+
+      - record: hydraulic:forecast_nowcast_duration_seconds_p95_5m
+        expr: histogram_quantile(0.95, sum by (le, status, solver) (rate(forecast_nowcast_duration_seconds_bucket[5m])))
+
+      - record: hydraulic:forecast_nowcast_to_alert_seconds_p95_5m
+        expr: histogram_quantile(0.95, sum by (le) (rate(forecast_nowcast_to_alert_seconds_bucket[5m])))
+
+      - record: hydraulic:forecast_outbox_backlog
+        expr: max(hydraulic_event_outbox_backlog)
+
+      - record: hydraulic:event_publish_lag_seconds
+        expr: max(hydraulic_event_publish_lag_seconds)

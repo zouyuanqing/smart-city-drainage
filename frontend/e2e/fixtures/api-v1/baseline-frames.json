@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "simulation_id": "55555555-5555-4555-8555-555555555555",
+  "network_revision_id": "22222222-2222-4222-8222-222222222222",
+  "target_manifest_id": "33333333-3333-4333-8333-333333333333",
+  "target_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "published_attempt_id": "77777777-7777-4777-8777-777777777777",
+  "published_attempt_no": 1,
+  "frame_interval_seconds": 300,
+  "frame_count": 2,
+  "frames": [
+    {
+      "frame_index": 0,
+      "frame_time": "2026-09-24T00:00:00Z",
+      "etag": "baseline-frame-0",
+      "checksum": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 700
+    },
+    {
+      "frame_index": 1,
+      "frame_time": "2026-09-24T00:05:00Z",
+      "etag": "baseline-frame-1",
+      "checksum": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "bytes": 720
+    }
+  ]
+}

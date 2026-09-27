@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "schema_version": 1,
+      "id": "55555555-5555-4555-8555-555555555555",
+      "status": "running",
+      "progress_pct": 64,
+      "attempt": 1,
+      "max_attempts": 3,
+      "network_id": "11111111-1111-4111-8111-111111111111",
+      "network_revision_id": "22222222-2222-4222-8222-222222222222",
+      "target_manifest_id": "33333333-3333-4333-8333-333333333333",
+      "target_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "rainfall_scenario_id": "44444444-4444-4444-8444-444444444444",
+      "solver_selection": "auto",
+      "solver_id": "py_mw",
+      "solver_version": "fixture-1",
+      "created_at": "2026-09-24T10:00:00Z",
+      "updated_at": "2026-09-24T10:01:00Z"
+    },
+    {
+      "schema_version": 1,
+      "id": "66666666-6666-4666-8666-666666666666",
+      "status": "retry_wait",
+      "progress": 72,
+      "attempt": 2,
+      "max_attempts": 3,
+      "network_id": "11111111-1111-4111-8111-111111111111",
+      "network_revision_id": "22222222-2222-4222-8222-222222222222",
+      "target_manifest_id": "33333333-3333-4333-8333-333333333333",
+      "target_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "rainfall_scenario_id": "44444444-4444-4444-8444-444444444444",
+      "solver_selection": "auto",
+      "solver_id": "py_mw",
+      "solver_version": "fixture-1",
+      "next_attempt_at": "2026-09-24T10:02:00Z",
+      "retry_backoff_seconds": 60,
+      "last_retry_error_code": "RESULT_PERSIST_FAILED",
+      "created_at": "2026-09-24T09:00:00Z",
+      "updated_at": "2026-09-24T10:01:30Z"
+    }
+  ],
+  "next_cursor": "cursor-fixture-1"
+}

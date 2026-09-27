@@ -1,0 +1,168 @@
+{
+  "schema": "hydraulic-ac-e2e-api-v1",
+  "fixture_id": "api-v1-behavior-contract",
+  "responses": {
+    "model_status": {
+      "method": "GET",
+      "path": "/api/models/status",
+      "status": 200,
+      "body_file": "current-model-status.json",
+      "body_sha256": "d189a46c76f59e5ab085fb973b0e55e94fd2fb59c7212618de7735fc3789751b"
+    },
+    "networks": {
+      "method": "GET",
+      "path": "/api/networks",
+      "status": 200,
+      "body_file": "current-network.json",
+      "body_sha256": "61d958ef5021189773743bcce1d676dc850d8b6468ea43b63065da59578f73ed"
+    },
+    "simulations": {
+      "method": "GET",
+      "path": "/api/simulations",
+      "status": 200,
+      "body_file": "current-tasks.json",
+      "body_sha256": "d9131bfeee4a1168717a7a5d5086cf8933a6c62b9e619d8f3a0e82a4b56827c9"
+    },
+    "simulation_submit": {
+      "method": "POST",
+      "path": "/api/simulations",
+      "status": 200,
+      "body_file": "simulation-submitted.json",
+      "body_sha256": "ccc6c973c748c948d43a7cbb6b0d746f9e4de5332319bf578d04c5e1c199a04c"
+    },
+    "rainfall": {
+      "method": "GET",
+      "path": "/api/rainfall-scenarios",
+      "status": 200,
+      "body_file": "current-rainfall.json",
+      "body_sha256": "5637fbac03df0bd11a7dc55a24ef5c8ce1c5959559360db665b8c6606d6dd51c"
+    },
+    "rainfall_create": {
+      "method": "POST",
+      "path": "/api/rainfall-scenarios",
+      "status": 200,
+      "body_file": "rainfall-created.json",
+      "body_sha256": "9e9296d08c08ac138798d54690df06b16915ae94d911def7dc63a2775c73e935"
+    },
+    "map_data": {
+      "method": "GET",
+      "path": "/api/networks/11111111-1111-4111-8111-111111111111/map-data",
+      "status": 200,
+      "body_file": "current-map.json",
+      "body_sha256": "d79ae131cdfa8bc15ee4e2ab2d30922fd9bd7be5c74268d3d3eda97c52e36b57"
+    },
+    "baseline_frames": {
+      "method": "GET",
+      "path": "/api/simulations/55555555-5555-4555-8555-555555555555/frames",
+      "status": 200,
+      "body_file": "baseline-frames.json",
+      "body_sha256": "337c02f8a635170abab0d50bb48649b057c4bcd2fe69462c0ad8c5866a261b46"
+    },
+    "candidate_frames": {
+      "method": "GET",
+      "path": "/api/simulations/66666666-6666-4666-8666-666666666666/frames",
+      "status": 200,
+      "body_file": "candidate-frames.json",
+      "body_sha256": "3f9a8b688eba2e9b3c7caaebcbf33b29ff7a5cd5f953bfe8769ffe2a463703d6"
+    },
+    "baseline_frame_0": {
+      "method": "GET",
+      "path": "/api/simulations/55555555-5555-4555-8555-555555555555/frames/0",
+      "status": 200,
+      "body_file": "baseline-frame-0.json",
+      "body_sha256": "0e0f917a62975b3110f2d865f0d28a442d6e75bfe90aad8bbd59ea172163069e"
+    },
+    "baseline_frame_1": {
+      "method": "GET",
+      "path": "/api/simulations/55555555-5555-4555-8555-555555555555/frames/1",
+      "status": 200,
+      "body_file": "baseline-frame-1.json",
+      "body_sha256": "9146ec172e7d9450450c228134960d3f6a5c6bcd9c4ef955372ee5ebfe92a97c"
+    },
+    "candidate_frame_0": {
+      "method": "GET",
+      "path": "/api/simulations/66666666-6666-4666-8666-666666666666/frames/0",
+      "status": 200,
+      "body_file": "candidate-frame-0.json",
+      "body_sha256": "acc93ed34afbf852f6ac4dca5ef8793654fc3e577c18b034f1c4f03c2962e864"
+    },
+    "candidate_frame_1": {
+      "method": "GET",
+      "path": "/api/simulations/66666666-6666-4666-8666-666666666666/frames/1",
+      "status": 200,
+      "body_file": "candidate-frame-1.json",
+      "body_sha256": "1dac90f5c0ce9a23b7ea6dbb639f4a19c1e72ac83f333982f6cf21c830d4ca6f"
+    },
+    "observed_comparison": {
+      "method": "GET",
+      "path": "/api/simulations/55555555-5555-4555-8555-555555555555/observed-comparison",
+      "status": 200,
+      "body_file": "current-observed.json",
+      "body_sha256": "e3a6f82932830b4cc8de338c00a3794042f3c003381fc1c1c3c6a48b753e38a6"
+    },
+    "comparison": {
+      "method": "GET",
+      "path": "/api/simulations/55555555-5555-4555-8555-555555555555/compare/66666666-6666-4666-8666-666666666666",
+      "status": 200,
+      "body_file": "comparison.json",
+      "body_sha256": "59fb4d019c199a696f0f598539b3c301205aa7b00f7c2e12204053673fcb7bec"
+    },
+    "forecast_latest": {
+      "method": "GET",
+      "path": "/api/forecast/latest",
+      "status": 200,
+      "body_file": "current-forecast.json",
+      "body_sha256": "cf16f7f180d230d37012162ecdbc39e670083fbbd9e396246b6945388f0910ca"
+    },
+    "forecast_risk": {
+      "method": "GET",
+      "path": "/api/forecast/risk-ranking",
+      "status": 200,
+      "body_file": "current-risk.json",
+      "body_sha256": "644acfe0104024ea248d34333b287d43f1e86bbaba25cafe407c73a54651ca72"
+    },
+    "forecast_events": {
+      "method": "GET",
+      "path": "/api/forecast/events",
+      "status": 200,
+      "body_file": "current-event.json",
+      "body_sha256": "fa4e876938d8cd68505e5ce17c83eb70f773a78c39c63e9d7f1abf138232ae30",
+      "sse": {
+        "event": "forecast",
+        "count": 10,
+        "initial_delay_ms": 1000,
+        "interval_ms": 500,
+        "increment_sequence": true,
+        "data": {
+          "schema_version": 1,
+          "event_id": "event-1",
+          "sequence": 1,
+          "event_type": "alert.created",
+          "occurred_at": "2026-09-24T00:00:00Z",
+          "network_id": "11111111-1111-4111-8111-111111111111",
+          "nowcast_run_id": "run-1",
+          "simulation_id": "55555555-5555-4555-8555-555555555555",
+          "alert": {
+            "id": "a1",
+            "type": "flood_forecast",
+            "status": "open",
+            "phase": "predicted",
+            "target": {
+              "type": "node",
+              "id": "n1"
+            },
+            "expected_at": "2026-09-24T00:30:00Z",
+            "lead_time_minutes": 30,
+            "measurements": {
+              "depth_m": 0.1
+            },
+            "confidence": 0.9,
+            "confidence_method": "e2e-fixture",
+            "risk_score": 10,
+            "version": 1
+          }
+        }
+      }
+    }
+  }
+}

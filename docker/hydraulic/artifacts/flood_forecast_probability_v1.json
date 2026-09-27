@@ -1,0 +1,28 @@
+{
+  "artifact": "flood_forecast_probability",
+  "bins": [
+    {
+      "metric": "water_depth_m",
+      "probability": 0.05
+    },
+    {
+      "metric": "water_depth_m",
+      "probability": 0.15
+    },
+    {
+      "metric": "water_depth_m",
+      "probability": 0.3
+    },
+    {
+      "metric": "water_depth_m",
+      "probability": 0.55
+    },
+    {
+      "metric": "water_depth_m",
+      "probability": 0.8
+    }
+  ],
+  "calibration_method": "reliability-diagram-v1",
+  "network_id": "11111111-1111-4111-8111-111111111111",
+  "schema_version": 1
+}

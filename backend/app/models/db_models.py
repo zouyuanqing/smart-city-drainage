@@ -16,10 +16,12 @@ from sqlalchemy import (
     JSON,
     Boolean,
     DateTime,
+    Engine,
     Enum,
     Float,
     ForeignKey,
     Integer,
+    MetaData,
     String,
     Text,
 )
@@ -27,10 +29,86 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
-class Base(DeclarativeBase):
-    """SQLAlchemy 声明式基类"""
+class _SchemaAwareMetaData(MetaData):
+    """Keep PostgreSQL schemas while allowing isolated SQLite unit tests.
 
-    pass
+    Alembic and PostgreSQL retain the explicit ``hydraulic`` and ``public``
+    schemas.  SQLite has no named schemas, so explicit development/test
+    ``create_all(tables=...)`` translates both prefixes to its single
+    connection namespace.  Unqualified runtime ``create_all`` deliberately
+    keeps its historical legacy-only behavior; hydraulic DDL remains owned by
+    Alembic even though its tables are registered in ``Base.metadata``.
+    """
+
+    def _selected_tables(self, tables: Any) -> Any:
+        if tables is not None:
+            return tables
+        return [
+            table
+            for table_name, table in self.tables.items()
+            if not table_name.startswith("hydraulic.")
+        ]
+
+    @staticmethod
+    def _translated_bind(bind: Any) -> Any:
+        if getattr(getattr(bind, "dialect", None), "name", None) != "sqlite":
+            return bind
+        schema_translate_map = {"hydraulic": None, "public": None}
+        return bind.execution_options(schema_translate_map=schema_translate_map)
+
+    def create_all(
+        self,
+        bind: Any,
+        tables: Any = None,
+        checkfirst: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        selected_tables = self._selected_tables(tables)
+        if isinstance(bind, Engine):
+            with bind.connect() as connection:
+                super().create_all(
+                    self._translated_bind(connection),
+                    tables=selected_tables,
+                    checkfirst=checkfirst,
+                    **kwargs,
+                )
+            return
+        super().create_all(
+            self._translated_bind(bind),
+            tables=selected_tables,
+            checkfirst=checkfirst,
+            **kwargs,
+        )
+
+    def drop_all(
+        self,
+        bind: Any,
+        tables: Any = None,
+        checkfirst: bool = True,
+        **kwargs: Any,
+    ) -> None:
+        selected_tables = self._selected_tables(tables)
+        if isinstance(bind, Engine):
+            with bind.connect() as connection:
+                super().drop_all(
+                    self._translated_bind(connection),
+                    tables=selected_tables,
+                    checkfirst=checkfirst,
+                    **kwargs,
+                )
+            return
+        super().drop_all(
+            self._translated_bind(bind),
+            tables=selected_tables,
+            checkfirst=checkfirst,
+            **kwargs,
+        )
+
+
+class Base(DeclarativeBase):
+    """SQLAlchemy declarative base for legacy and hydraulic schemas."""
+
+    metadata = _SchemaAwareMetaData()
 
 
 class RoleEnum(str, enum.Enum):
@@ -293,3 +371,8 @@ class InferenceResult(Base):
 
     def __repr__(self) -> str:
         return f"<InferenceResult detections={len(self.detections)}>"
+
+
+# Import after Base and the legacy mappings are defined so Alembic's target
+# metadata includes the new hydraulic schema without changing legacy tables.
+from app.models import hydraulic_models as _hydraulic_models  # noqa: E402,F401

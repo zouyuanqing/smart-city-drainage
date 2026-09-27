@@ -12,6 +12,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator, AsyncIterator
 from urllib.parse import quote_plus
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -20,7 +21,6 @@ from sqlalchemy.ext.asyncio import (
 )
 
 from app.core.config import settings
-from app.models.db_models import Base
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,9 @@ def _build_safe_db_url() -> str:
     safe_url = urlunparse(
         (
             parsed.scheme,
-            f"{quote_plus(parsed.username or '')}:{quote_plus(parsed.password or '')}@{parsed.hostname or 'localhost'}:{parsed.port or 5432}",
+            f"{quote_plus(parsed.username or '')}:"
+            f"{quote_plus(parsed.password or '')}@"
+            f"{parsed.hostname or 'localhost'}:{parsed.port or 5432}",
             parsed.path,
             parsed.params,
             parsed.query,
@@ -131,20 +133,7 @@ async def get_db_session() -> AsyncIterator[AsyncSession]:
 
 
 # ============================================================
-# 表创建（开发用）
-# ============================================================
-
-
-async def create_all_tables() -> None:
-    """创建所有声明的数据库表（开发环境用，生产环境应使用 Alembic 迁移）"""
-    engine = get_engine()
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    logger.info("所有数据库表已创建/确认存在")
-
-
-# ============================================================
-# 连接测试
+# 连接与 schema readiness
 # ============================================================
 
 
@@ -153,8 +142,6 @@ async def check_database_connection() -> bool:
     try:
         engine = get_engine()
         async with engine.connect() as conn:
-            from sqlalchemy import text
-
             result = await conn.execute(text("SELECT 1"))
             if result.fetchone():
                 logger.info("数据库连接正常")
@@ -162,6 +149,65 @@ async def check_database_connection() -> bool:
     except Exception as exc:
         logger.error("数据库连接失败: %s", exc)
     return False
+
+
+async def check_hydraulic_schema_readiness() -> dict[str, object]:
+    """Verify both the Alembic head and the immutable spatial profile."""
+
+    expected = settings.HYDRAULIC_SCHEMA_REVISION
+    result: dict[str, object] = {
+        "ready": False,
+        "code": "SPATIAL_BACKEND_UNAVAILABLE",
+        "expected_alembic_revision": expected,
+        "expected_spatial_backend": settings.HYDRAULIC_SPATIAL_BACKEND,
+    }
+    try:
+        async with get_engine().connect() as connection:
+            alembic_row = (
+                (
+                    await connection.execute(
+                        text("SELECT version_num FROM alembic_version")
+                    )
+                )
+                .mappings()
+                .first()
+            )
+            metadata_row = (
+                (
+                    await connection.execute(
+                        text(
+                            "SELECT value, alembic_revision "
+                            "FROM hydraulic.schema_metadata "
+                            "WHERE key = 'spatial_backend'"
+                        )
+                    )
+                )
+                .mappings()
+                .first()
+            )
+    except Exception as exc:
+        result["reason"] = type(exc).__name__
+        logger.error("Hydraulic schema readiness check failed: %s", exc)
+        return result
+
+    actual_head = alembic_row["version_num"] if alembic_row else None
+    actual_profile = metadata_row["value"] if metadata_row else None
+    metadata_head = metadata_row["alembic_revision"] if metadata_row else None
+    result.update(
+        {
+            "alembic_revision": actual_head,
+            "schema_metadata_revision": metadata_head,
+            "spatial_backend": actual_profile,
+        }
+    )
+    result["ready"] = (
+        actual_head == expected
+        and metadata_head == expected
+        and actual_profile == settings.HYDRAULIC_SPATIAL_BACKEND
+    )
+    if not result["ready"]:
+        result["reason"] = "schema_head_or_profile_mismatch"
+    return result
 
 
 # ============================================================

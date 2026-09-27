@@ -1,0 +1,47 @@
+# Minimal Windows/Python 3.11 profile for the pure-Python hydraulic fallback.
+# It deliberately excludes SWMM, CUDA, computer-vision and other optional
+# native engines. EPA SWMM is provisioned as a verified external executable.
+#
+# Interpreter matrix: Python 3.11 is the contract interpreter (lock:
+# requirements-hydraulic-py311.lock). On Python >= 3.13 the marker-guarded pins
+# below keep the same install wheel-backed on Windows/macOS/Linux hosts, so no
+# pg_config or C toolchain is required. The hydraulic extra and this file are
+# the supported pure-Python path; they do not import an EPA SWMM native module.
+
+# Web/API and persistence
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+python-multipart==0.0.7
+sse-starlette==1.8.2
+sqlalchemy[asyncio]==2.0.27 ; python_version < "3.13"
+sqlalchemy[asyncio]==2.0.45 ; python_version >= "3.13"
+asyncpg==0.29.0 ; python_version < "3.13"
+asyncpg==0.31.0 ; python_version >= "3.13"
+alembic==1.13.1
+psycopg2-binary==2.9.9 ; python_version < "3.13"
+psycopg2-binary==2.9.13 ; python_version >= "3.13"
+influxdb-client==1.41.0
+redis==5.0.1
+
+# Configuration/authentication and observability
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
+pydantic==2.6.1 ; python_version < "3.13"
+pydantic==2.12.5 ; python_version >= "3.13"
+pydantic-settings==2.1.0
+httpx==0.27.0
+python-json-logger==2.0.7
+prometheus-fastapi-instrumentator==6.1.0
+
+# Pure-Python solver/quality path
+numpy==1.26.4 ; python_version < "3.13"
+numpy==2.3.4 ; python_version >= "3.13"
+
+# Image decoding for the API import chain (app.services.inference_service).
+# Pillow ships manylinux/win32/macOS wheels and is not a solver engine.
+Pillow==10.2.0 ; python_version < "3.13"
+Pillow==12.1.0 ; python_version >= "3.13"
+
+# Test dependencies are intentionally not part of the runtime fallback.
+# Install `.[test]` or the Python 3.11 test tooling separately when running tests.

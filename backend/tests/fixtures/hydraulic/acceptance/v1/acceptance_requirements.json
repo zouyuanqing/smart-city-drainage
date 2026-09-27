@@ -1,0 +1,154 @@
+{
+  "schema": "hydraulic-backend-acceptance-requirements-v1",
+  "evidence_state": "NOT_RUN",
+  "statement": "This file freezes evidence requirements only; it is not execution evidence and cannot make an AC PASS.",
+  "shared_required_artifact_fields": [
+    "run_id",
+    "utc_timestamp",
+    "commit",
+    "command",
+    "exit_code",
+    "result_summary",
+    "artifact_sha256"
+  ],
+  "cases": {
+    "AC-1": {
+      "required_gates": ["g1", "g2", "g6"],
+      "required_artifact_suffixes": [
+        "g1/postgis/result.json",
+        "g1/portable/result.json",
+        "g2/result.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ],
+      "required_observations": [
+        "durable import job reaches a terminal state in both spatial profiles",
+        "network revision commits only after validation and materialization succeed",
+        "INP and GeoJSON counts, stable keys, geometry and issues round-trip",
+        "failed imports leave no network, revision, file or idempotency residue"
+      ]
+    },
+    "AC-2": {
+      "required_gates": ["g2", "g6"],
+      "required_artifact_suffixes": [
+        "g2/result.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ],
+      "required_observations": [
+        "raw multipart Windows drive, UNC, POSIX traversal and ADS names reach the server unchanged and return UNSAFE_PATH=422 before extension classification",
+        "truncated archives, bounded high-ratio zip input, deep JSON, duplicate stable keys and CPU or memory samples are rejected with frozen status and code",
+        "JWT algorithm, issuer, audience, expiry and role negative cases return 401",
+        "viewer writes return 403 and each rate-limit bucket returns 429 with Retry-After",
+        "network-job, simulation and calibration idempotency cover replay, conflict, expiry generation, concurrent active uniqueness and FK retention",
+        "filesystem, network and readiness signatures are unchanged before and after every rejected case"
+      ]
+    },
+    "AC-3": {
+      "required_gates": ["g3", "g5", "e2e", "g6"],
+      "required_artifact_suffixes": [
+        "g3/result.json",
+        "g5/result.json",
+        "e2e/ac-smoke.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ],
+      "required_observations": [
+        "50-year 24-hour design storm runs through the real solver on four physical cores",
+        "worker wall time is at most 180 seconds for every repeat",
+        "289 persisted frames have monotonic timestamps, non-empty hydraulic content and checksums",
+        "quality and conservation checks pass without silent solver fallback",
+        "worker kill recovers a PostgreSQL lease and increments the fencing token",
+        "stale attempts cannot publish frames or results",
+        "timeout, cancel, retry backoff, attempt exhaustion and workspace cleanup are proven",
+        "API progress, cancellation and map timeline replay are reproducible"
+      ]
+    },
+    "AC-4": {
+      "required_gates": ["g4", "g5", "e2e", "g6"],
+      "required_artifact_suffixes": [
+        "g4/result.json",
+        "g5/result.json",
+        "e2e/ac-smoke.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ],
+      "required_observations": [
+        "100 fake-clock slots and 30 real cycles produce auditable issued, origin and producer-published timestamps",
+        "every real cycle publishes within 180 seconds including P95 and maximum latency",
+        "probability calibration and forecast rule artifacts are resolved by ID, hash, validity and domain",
+        "PostgreSQL transactions enforce one active alert and one business event across concurrent workers",
+        "29m59s suppression, 30m boundary and observed-stage suppression are durable",
+        "authenticated canonical SSE replays exactly once across two workers and restart",
+        "producer outbox, relay publication, gap, resync, delivery retry and DLQ are atomic and auditable"
+      ]
+    },
+    "AC-5": {
+      "required_gates": ["g3", "g5", "e2e", "g6"],
+      "required_artifact_suffixes": [
+        "g3/result.json",
+        "g5/result.json",
+        "e2e/ac-smoke.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ],
+      "required_observations": [
+        "every observation has immutable source event identity, payload hash and adapter version",
+        "external_verified trust is resolved by versioned policy rather than payload self-report",
+        "authentication, active device-network binding and good quality are independently evidenced",
+        "training, validation and test event splits are disjoint and persisted",
+        "baseline and calibrated candidates execute the pinned solver rather than derive predictions from observations",
+        "dataset, split, rainfall, solver, parameter, code and report hashes are reproducible",
+        "durable calibration lifecycle proves claim, lease, retry, timeout, finalization and report/metric atomicity"
+      ]
+    },
+    "AC-6": {
+      "required_gates": ["g3", "e2e", "g6"],
+      "required_artifact_suffixes": [
+        "g3/result.json",
+        "e2e/ac-smoke.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ],
+      "required_observations": [
+        "both A and B results are finalized by the real result repository",
+        "network revision, target manifest, rainfall, start, duration, interval and frame checksums match",
+        "every compared metric has explicit units and a frozen better direction",
+        "incompatible units, revisions, manifests and time grids return 409",
+        "absolute and relative deltas are independently recomputed, including zero baseline",
+        "comparison remains reproducible after API and worker restart"
+      ]
+    },
+    "AC-7": {
+      "required_gates": ["g0", "e2e", "g6"],
+      "required_artifact_suffixes": [
+        "g0/result.json",
+        "e2e/ac-smoke.json",
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ],
+      "required_observations": [
+        "legacy REST status and response fields match versioned golden contracts",
+        "legacy SSE emits connected, sensors, alerts and system event names with stable payload fields",
+        "Last-Event-ID replays only newer events and survives reconnect",
+        "backend quality commands, startup and frontend legacy tests all exit zero",
+        "legacy characterization passes independently in postgis and portable profiles"
+      ]
+    },
+    "AC-8": {
+      "required_gates": ["g6"],
+      "required_artifact_suffixes": [
+        "g6/postgis/result.json",
+        "g6/portable/result.json"
+      ],
+      "required_observations": [
+        "postgis and portable run as two independent commands with fresh volumes",
+        "both profiles run migration, workers, API and SSE from pinned images",
+        "README demo completes in each profile",
+        "backup, volume destruction and restore complete in each profile",
+        "restored database hash and API probes match the pre-destroy evidence",
+        "both result artifacts have the same RUN_ID and commit and exit zero"
+      ]
+    }
+  }
+}

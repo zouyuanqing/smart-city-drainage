@@ -1,5 +1,14 @@
 FROM python:3.11-slim
 
+ARG PIP_INDEX_URL=https://pypi.org/simple
+# Base for the deb822 `URIs:` entries in /etc/apt/sources.list.d. Only the
+# host changes: the suites, components and Signed-By keyring are untouched, so
+# every index and package is still verified against the Debian archive keyring
+# exactly as before. Exists for the same reason as PIP_INDEX_URL above — a
+# network that cannot reach the canonical host should be a build argument, not
+# a hard-coded endpoint.
+ARG DEBIAN_MIRROR=http://deb.debian.org
+
 LABEL maintainer="Smart City Neural Endpoints Team"
 LABEL description="FastAPI backend (CPU mode)"
 
@@ -9,19 +18,84 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg libsm6 libxext6 libgl1 libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+# ffmpeg is required by app/services/stream_service.py (HLS capture) and the
+# GL/X11 libraries by opencv-python, which ultralytics pulls into the CPU
+# profile; together they resolve to 207 packages / 133 MB of archives.
+#
+# Driving that as one long transaction is not safe against a flaky mirror:
+#
+#   * With apt's default in-process retry loop, one failed fetch makes apt
+#     re-queue the transaction and its heap grows into the tens of GB. Measured
+#     on this builder, apt reached 26.4 GiB RSS inside a 27.6 GiB Docker
+#     Desktop VM and the OOM killer took buildkitd down with it
+#     ("ResourceExhausted ... cannot allocate memory",
+#     "failed to receive status: rpc error: code = Unavailable"). With
+#     Acquire::Retries=0 the same step peaks near 72 MB.
+#   * With retries disabled, a connection that trickles instead of failing can
+#     stall the whole 133 MB transfer (observed at <1 KB/s for minutes with a
+#     live socket, so no read timeout fires). `timeout` aborts such an attempt.
+#
+# So: no in-process retries, a wall-clock bound per attempt, and a bounded
+# outer loop that re-runs the whole transaction in a fresh process with
+# refreshed lists. Installed package set is unchanged.
+RUN set -eux; \
+    if [ "$DEBIAN_MIRROR" != "http://deb.debian.org" ]; then \
+        sed -i "s|http://deb.debian.org|$DEBIAN_MIRROR|g" \
+            /etc/apt/sources.list.d/debian.sources; \
+        grep -q "$DEBIAN_MIRROR" /etc/apt/sources.list.d/debian.sources; \
+    fi; \
+    for attempt in 1 2 3 4 5; do \
+        apt-get update; \
+        if timeout 900 apt-get install -y --no-install-recommends \
+            -o Acquire::Retries=0 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
+            ffmpeg libsm6 libxext6 libgl1 libglib2.0-0; then \
+            break; \
+        fi; \
+        if [ "$attempt" = 5 ]; then \
+            echo "apt-get install failed after 5 attempts" >&2; \
+            exit 1; \
+        fi; \
+        echo "apt-get install attempt $attempt failed; retrying" >&2; \
+    done; \
+    rm -rf /var/lib/apt/lists/*; \
+    groupadd --gid 10001 scn; \
+    useradd --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin scn
 
-COPY requirements-cpu.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# Hash-locked Python 3.11 CPU profile. requirements-cpu.txt is the human
+# maintained input; this lock is what the image actually installs.
+COPY requirements-py311.lock .
+RUN pip install --no-cache-dir --index-url "$PIP_INDEX_URL" \
+        --require-hashes -r requirements-py311.lock \
+    && pip check
 
-COPY . .
+COPY --chown=scn:scn . .
 
-RUN mkdir -p /app/media/hls /app/media/screenshots /app/models/weights
+# The application opens logs/app.log during lifespan startup, and the
+# simulation worker writes attempt sandboxes and published results. Create the
+# directories in the image so the non-root process does not depend on CWD or a
+# bind mount, and let Docker copy this ownership into fresh named volumes.
+#
+# The three /var/lib/smart-drainage roots matter as much as the /app ones:
+# Compose backs them with fresh named volumes (simulation_sandbox /
+# simulation_results / network_job_import). A named volume whose mount point
+# does not exist in the image is created root-owned, so a 10001:10001 worker
+# would fail its fail-closed `workspace_not_writable` /
+# `staging_root_not_writable` startup check on a fresh stack instead of only on
+# a re-used volume.
+RUN mkdir -p /app/logs /app/media/hls /app/media/screenshots /app/models/weights \
+        /var/lib/smart-drainage/sandbox /var/lib/smart-drainage/results \
+        /var/lib/smart-drainage/import \
+    && chown -R scn:scn /app/logs /app/media /app/models \
+        /var/lib/smart-drainage
 
+USER 10001:10001
+
+# Image-level liveness only. Compose overrides this with /readyz for the API
+# service because orchestration health must include dependency readiness.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import httpx; httpx.get('http://localhost:8000/health')"
+    CMD ["python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5)"]
 
 EXPOSE 8000
 

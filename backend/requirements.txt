@@ -1,62 +1,74 @@
-# ============================================================
-# Smart City Neural Endpoints — Backend Requirements
-# Python 3.11+
-# ============================================================
+# Smart City Drainage backend — reproducible full/GPU profile.
+# The pure-Python hydraulic fallback is included. EPA SWMM remains optional and
+# must be provisioned as a verified external executable, not a pip wrapper.
+#
+# This is the full profile and is not the Windows fallback: it includes the
+# optional AI/CUDA stack. Use requirements-hydraulic.txt on a Windows host that
+# needs only API/configuration plus the pure-Python hydraulic path.
+#
+# Interpreter matrix (no line below may fall back to a source build):
+#   * Python 3.11 is the contract interpreter: Docker, CI and the
+#     requirements-py311-gpu.lock hash lock install exactly these pins.
+#   * Python >= 3.13 (host tooling, e.g. Windows 3.13/3.14) installs the
+#     marker-guarded companion pins that publish cp313/cp314 wheels, and skips
+#     the CUDA/YOLO stack, which has no wheel for those interpreters. The API
+#     and the pure-Python hydraulic path stay fully functional.
+# Keep every compiler-backed dependency behind an explicit marker: an unmarked
+# pin without a wheel makes `pip install` reach for pg_config / a C toolchain.
 
-# --- Web Framework ---
+# Web/API
 fastapi==0.109.2
 uvicorn[standard]==0.27.1
 python-multipart==0.0.7
 sse-starlette==1.8.2
 
-# --- Database ---
-sqlalchemy[asyncio]==2.0.27
-asyncpg==0.29.0
+# Database and infrastructure
+sqlalchemy[asyncio]==2.0.27 ; python_version < "3.13"
+sqlalchemy[asyncio]==2.0.45 ; python_version >= "3.13"
+asyncpg==0.29.0 ; python_version < "3.13"
+asyncpg==0.31.0 ; python_version >= "3.13"
 alembic==1.13.1
+psycopg2-binary==2.9.9 ; python_version < "3.13"
+psycopg2-binary==2.9.13 ; python_version >= "3.13"
 influxdb-client==1.41.0
-
-# --- Cache & Queue ---
 redis==5.0.1
-hiredis==2.3.2
+hiredis==2.3.2 ; python_version < "3.13"
+hiredis==3.3.1 ; python_version >= "3.13"
 
-# --- Auth ---
+# Authentication and configuration
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.7
-
-# --- AI / Computer Vision ---
-ultralytics==8.1.0
-torch>=2.1.0
-torchvision>=0.16.0
-opencv-python-headless==4.9.0.80
-numpy==1.26.4
-Pillow==10.2.0
-onnxruntime-gpu==1.17.1  # Use onnxruntime for CPU-only
-
-# --- Video Processing ---
-ffmpeg-python==0.2.0
-av==11.0.0
-
-# --- Utilities ---
-pydantic==2.6.1
+bcrypt==4.1.2
+pydantic==2.6.1 ; python_version < "3.13"
+pydantic==2.12.5 ; python_version >= "3.13"
 pydantic-settings==2.1.0
-python-dotenv==1.0.1
+
+# Pure-Python hydraulic fallback
+numpy==1.26.4 ; python_version < "3.13"
+numpy==2.3.4 ; python_version >= "3.13"
+
+# Full AI/GPU profile (wheel-backed interpreters only: 3.11/3.12)
+ultralytics==8.1.0 ; python_version < "3.13"
+torch==2.2.1 ; python_version < "3.13"
+torchvision==0.17.1 ; python_version < "3.13"
+onnxruntime-gpu==1.17.1 ; python_version < "3.13"
+# OpenCV 4.9 is built against the numpy 1.x ABI; numpy 2 needs >= 4.11.
+opencv-python-headless==4.9.0.80 ; python_version < "3.13"
+opencv-python-headless==4.11.0.86 ; python_version >= "3.13"
+Pillow==10.2.0 ; python_version < "3.13"
+Pillow==12.1.0 ; python_version >= "3.13"
+
+# Utilities and monitoring
 httpx==0.27.0
-aiofiles==23.2.1
-tenacity==8.2.3
-
-# --- Monitoring ---
-prometheus-fastapi-instrumentator==6.1.0
 python-json-logger==2.0.7
+prometheus-fastapi-instrumentator==6.1.0
 
-# --- Development & Testing ---
+# Test and quality tooling
 pytest==8.0.1
 pytest-asyncio==0.23.6
-faker==23.1.0
-
-# Development
+pytest-cov==4.1.0
+aiosqlite==0.20.0
 black==24.1.0
 isort==5.13.0
 flake8==7.0.0
 mypy==1.8.0
-pytest-cov==4.1.0

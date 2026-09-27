@@ -1,0 +1,1 @@
+{"generator":"scripts/generate_solver_benchmark_fixture.py","node_depth_m":0.0,"note":"The frozen network starts dry; the acceptance run therefore measures the full rise-and-recession of the design storm, not a warmed state.","outfall_node_id":"N-00000","pipe_flow_m3s":0.0,"schema":"hydraulic-solver-benchmark-initial-state-v1"}

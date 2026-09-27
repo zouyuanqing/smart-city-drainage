@@ -1,0 +1,16 @@
+{
+  "detail": "simulation input contains unsupported features",
+  "code": "UNSUPPORTED_FEATURE",
+  "request_id": "99999999-9999-4999-8999-999999999999",
+  "errors": [
+    {
+      "field": "pumps",
+      "message": "solver does not support pumps",
+      "retryable": false,
+      "details": {
+        "object_ids": ["P-001"],
+        "suggested_solver": "swmm_kw"
+      }
+    }
+  ]
+}

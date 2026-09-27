@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ============================================================
 # 智慧城市神经末梢 — 市政排水智能监测与AI安防系统
 # Smart City Neural Endpoints — Drainage AI Monitoring System
@@ -8,15 +6,12 @@ version: "3.9"
 services:
   # ===================== PostgreSQL (关系数据) =====================
   postgres:
-    image: timescale/timescaledb:latest-pg15
-    container_name: scn-postgres
+    image: timescale/timescaledb@sha256:3f77046809de51aacf70719c3662f05e0bf9d29c0c7f9d8bda6bb57a0c6fe400
     restart: unless-stopped
     environment:
       POSTGRES_DB: smart_drainage
       POSTGRES_USER: drainage_admin
-      POSTGRES_PASSWORD: Dr@inage_S3cur3_2024!
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql
@@ -28,39 +23,76 @@ services:
       timeout: 5s
       retries: 5
 
+  # ===================== Alembic 唯一 schema writer =====================
+  migrate:
+    image: smart-city-drainage-backend:local
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.cpu
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-http://deb.debian.org}
+    restart: "no"
+    init: true
+    # `command` stays the contract's `alembic upgrade head`; the entrypoint
+    # runs it and then applies the idempotent forecast policy data seed, which
+    # the migration schema alone does not provide.
+    entrypoint: ["sh", "/opt/scn/migrate-entrypoint.sh"]
+    command: ["alembic", "upgrade", "head"]
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 128
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to the encoded PostgreSQL URL}
+      HYDRAULIC_SPATIAL_BACKEND: ${HYDRAULIC_SPATIAL_BACKEND:-portable}
+      HYDRAULIC_SCHEMA_REVISION: 0008_hydraulic_retention_seed
+      FORECAST_POLICY_SEED_PATH: /opt/scn/hydraulic/forecast-policy/seed-artifact-rows.sql
+    volumes:
+      - ./docker/hydraulic:/opt/scn/hydraulic:ro
+      - ./docker/backend/migrate-entrypoint.sh:/opt/scn/migrate-entrypoint.sh:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - scn-network
+
   # ===================== Redis (缓存/实时状态) =====================
   redis:
-    image: redis:7-alpine
-    container_name: scn-redis
+    image: redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass R3d1s_S3cur3_2024!
-    ports:
-      - "6379:6379"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set REDIS_PASSWORD}
+    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$${REDIS_PASSWORD}\""]
     volumes:
       - redisdata:/data
     networks:
       - scn-network
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$${REDIS_PASSWORD}\" redis-cli --raw ping | grep -q PONG"]
       interval: 10s
       timeout: 3s
       retries: 5
 
   # ===================== InfluxDB (时序数据) =====================
   influxdb:
-    image: influxdb:2.7-alpine
-    container_name: scn-influxdb
+    image: influxdb@sha256:991673dc2d237bd79b15d6627410d72de111387e7dac673dbb92cf3333ffcc8c
     restart: unless-stopped
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: drainage_admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: Dr@inage_1nflux_2024!
+      DOCKER_INFLUXDB_INIT_PASSWORD: ${INFLUXDB_PASSWORD:?set INFLUXDB_PASSWORD}
       DOCKER_INFLUXDB_INIT_ORG: smart-city
       DOCKER_INFLUXDB_INIT_BUCKET: sensor_data
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: scn-influx-token-2024-secure
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: ${INFLUXDB_TOKEN:?set INFLUXDB_TOKEN}
       DOCKER_INFLUXDB_INIT_RETENTION: 90d
-    ports:
-      - "8086:8086"
     volumes:
       - influxdata:/var/lib/influxdb2
     networks:
@@ -73,50 +105,582 @@ services:
 
   # ===================== FastAPI 后端 =====================
   backend:
+    image: smart-city-drainage-backend:local
     build:
       context: ./backend
       dockerfile: ../docker/backend/Dockerfile.cpu
-    container_name: scn-backend
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-http://deb.debian.org}
     restart: unless-stopped
+    init: true
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    mem_reservation: 1g
+    cpus: 2.0
+    pids_limit: 256
+    stop_grace_period: 30s
     environment:
-      DATABASE_URL: postgresql+asyncpg://drainage_admin:Dr@inage_S3cur3_2024!@postgres:5432/smart_drainage
+      DEPLOYMENT_ENVIRONMENT: production
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to the encoded PostgreSQL URL}
+      DATABASE_URL_SYNC: ${DATABASE_URL_SYNC:?set DATABASE_URL_SYNC to the encoded PostgreSQL URL}
+      HYDRAULIC_SPATIAL_BACKEND: ${HYDRAULIC_SPATIAL_BACKEND:-portable}
+      HYDRAULIC_SCHEMA_REVISION: 0008_hydraulic_retention_seed
       INFLUXDB_URL: http://influxdb:8086
-      INFLUXDB_TOKEN: scn-influx-token-2024-secure
-      INFLUXDB_ORG: smart-city
-      INFLUXDB_BUCKET: sensor_data
-      REDIS_URL: redis://:R3d1s_S3cur3_2024!@redis:6379/0
-      JWT_SECRET_KEY: scn-jwt-secret-key-change-in-production-2024
-      JWT_ALGORITHM: HS256
+      INFLUXDB_TOKEN: ${INFLUXDB_TOKEN:?set INFLUXDB_TOKEN}
+      INFLUXDB_ORG: ${INFLUXDB_ORG:?set INFLUXDB_ORG}
+      INFLUXDB_BUCKET: ${INFLUXDB_BUCKET:?set INFLUXDB_BUCKET}
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL with the Redis password}
+      JWT_ALGORITHM: RS256
+      JWT_ALGORITHMS: '["RS256"]'
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:?set JWT_PRIVATE_KEY}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:?set JWT_PUBLIC_KEY}
+      JWT_ISSUER: ${JWT_ISSUER:?set JWT_ISSUER}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:?set JWT_AUDIENCE}
+      AUTH_FALLBACK_ADMIN_ENABLED: "false"
       ACCESS_TOKEN_EXPIRE_MINUTES: 1440
       MODEL_STORAGE_PATH: /app/models/weights
       DEFAULT_MODEL_VERSION: v1
       MODEL_INFERENCE_DEVICE: cpu
       HLS_OUTPUT_DIR: /app/media/hls
       SCREENSHOT_DIR: /app/media/screenshots
-      CORS_ORIGINS: '["http://localhost","http://localhost:80","http://localhost:3000","http://localhost:5173","http://frontend:80"]'
+      CORS_ORIGINS: '["http://localhost","http://localhost:80","http://localhost:8080","http://localhost:3000","http://localhost:5173","http://frontend:8080"]'
+      # Forecast policy config + controlled artifact root (§13.1).  The API
+      # re-hashes the closed policy object and compares it byte for byte
+      # against the <path>.sha256 sidecar, so both files must be present in the
+      # mounted read-only root or /readyz reports the forecast component as not
+      # ready.  FORECAST_POLICY_CONFIG_PATH is required rather than defaulted so
+      # a missing artifact can never be silently skipped.
+      HYDRAULIC_ARTIFACT_ROOT: /opt/scn/hydraulic/artifacts
+      FORECAST_POLICY_CONFIG_PATH: /opt/scn/hydraulic/forecast-policy/forecast-policy.json
     ports:
       - "8000:8000"
     volumes:
       - ./models:/app/models:ro
       - hls_media:/app/media
+      - backend_logs:/app/logs
+      - ./docker/hydraulic:/opt/scn/hydraulic:ro
+      - ./docker/backend/healthcheck.py:/opt/scn/healthcheck.py:ro
     networks:
       - scn-network
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
       influxdb:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "/opt/scn/healthcheck.py", "--url", "http://127.0.0.1:8000/readyz", "--timeout", "5"]
+      interval: 15s
+      timeout: 7s
+      start_period: 75s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  # ===================== Simulation worker (business implementation is owned by SIM-WORKER) =====================
+  simulation-worker:
+    image: smart-city-drainage-backend:local
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.cpu
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-http://deb.debian.org}
+    restart: unless-stopped
+    init: true
+    command: ["python", "-m", "app.workers.simulation_worker"]
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 4g
+    mem_reservation: 2g
+    cpus: 2.0
+    pids_limit: 512
+    stop_grace_period: 30s
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to the encoded PostgreSQL URL}
+      # The API's /readyz reads hydraulic:worker:heartbeat:simulation, so this
+      # worker needs the same Redis the API reads.  Without it the key is never
+      # written and the API could never report ready for a reason that has
+      # nothing to do with simulation health.
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL with the Redis password}
+      HYDRAULIC_SPATIAL_BACKEND: ${HYDRAULIC_SPATIAL_BACKEND:-portable}
+      HYDRAULIC_SCHEMA_REVISION: 0008_hydraulic_retention_seed
+      HYDRAULIC_SANDBOX_ROOT: /var/lib/smart-drainage/sandbox
+      HYDRAULIC_EXPORT_ROOT: /var/lib/smart-drainage/results
+      SIM_GLOBAL_CONCURRENCY: "2"
+      SIM_NOWCAST_RESERVED_SLOTS: "1"
+      SIM_ATTEMPT_TIMEOUT_SECONDS: "600"
+      SIM_MAX_ATTEMPTS: "3"
+      SIM_RETRY_BACKOFF_SECONDS: "[10, 60]"
+      SIM_LEASE_SECONDS: "30"
+      SIM_HEARTBEAT_SECONDS: "10"
+      SIM_CANCEL_POLL_SECONDS: "1"
+      SIM_INPUT_MAX_BYTES: "20971520"
+      SIM_WORKSPACE_MAX_BYTES: "2147483648"
+      SIMULATION_FRAME_MAX_BYTES: "67108864"
+      SIMULATION_OUTPUT_MAX_BYTES: "8589934592"
+      SIMULATION_RESULT_RETENTION_DAYS: "90"
+      SOLVER_DEFAULT_SELECTION: auto
+      # The real solver process: one attempt per invocation, shell=False, cwd
+      # is the attempt workspace.  It reads <workspace>/solver_input.json and
+      # writes frames/quality/metrics/result; a non-zero exit fails the
+      # attempt closed.  This is a process-level worker knob read directly from
+      # the environment (see WorkerRuntimeConfig.from_environ), deliberately
+      # NOT a Settings field, so the frozen 105-field .env.example contract is
+      # untouched.  Comma-separated, because parse_solver_argv accepts a JSON
+      # array, a comma list, or a native sequence.
+      SIMULATION_SOLVER_COMMAND: ${SIMULATION_SOLVER_COMMAND:-python,-m,app.services.hydraulic.solvers.cli}
+      SIMULATION_WORKER_HEALTH_HOST: 0.0.0.0
+      SIMULATION_WORKER_HEALTH_PORT: "8010"
+    expose:
+      - "8010"
+    volumes:
+      - simulation_sandbox:/var/lib/smart-drainage/sandbox
+      - simulation_results:/var/lib/smart-drainage/results
+      - worker_logs:/app/logs
+      - ./docker/backend/healthcheck.py:/opt/scn/healthcheck.py:ro
+    networks:
+      - scn-network
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "/opt/scn/healthcheck.py", "--url", "http://127.0.0.1:8010/readyz", "--timeout", "5"]
+      interval: 15s
+      timeout: 7s
+      start_period: 60s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  # ===================== Network-job worker (independent lane) =====================
+  # network-job-worker claims hydraulic.network_jobs under a lease + fencing
+  # token and runs the real import / validate / seed business.  It never
+  # touches the simulation or nowcast lanes.
+  network-job-worker:
+    image: smart-city-drainage-backend:local
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.cpu
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-http://deb.debian.org}
+    restart: unless-stopped
+    init: true
+    command: ["python", "-m", "app.workers.network_job_worker"]
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    mem_reservation: 512m
+    cpus: 1.0
+    pids_limit: 256
+    stop_grace_period: 30s
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to the encoded PostgreSQL URL}
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL with the Redis password}
+      HYDRAULIC_SPATIAL_BACKEND: ${HYDRAULIC_SPATIAL_BACKEND:-portable}
+      HYDRAULIC_SCHEMA_REVISION: 0008_hydraulic_retention_seed
+      # Staging root for job payloads: <HYDRAULIC_IMPORT_ROOT>/<job_id>.inp
+      # (import/validate) or .json (seed).  Named volume because a bind mount
+      # from the host would not exist in a non-development deployment.
+      HYDRAULIC_IMPORT_ROOT: /var/lib/smart-drainage/import
+      NETWORK_JOB_GLOBAL_CONCURRENCY: ${NETWORK_JOB_GLOBAL_CONCURRENCY:-2}
+      NETWORK_JOB_LEASE_SECONDS: ${NETWORK_JOB_LEASE_SECONDS:-30}
+      NETWORK_JOB_HEARTBEAT_SECONDS: ${NETWORK_JOB_HEARTBEAT_SECONDS:-10}
+      NETWORK_JOB_ATTEMPT_TIMEOUT_SECONDS: ${NETWORK_JOB_ATTEMPT_TIMEOUT_SECONDS:-600}
+      NETWORK_JOB_MAX_ATTEMPTS: ${NETWORK_JOB_MAX_ATTEMPTS:-3}
+      # A ${VAR:-"..."} default keeps the inner quotes as part of the value, so
+      # the process would receive the literal "[10, 60]" with quotes and
+      # Settings would fail to parse "[10" as an integer.  Leave them out.
+      NETWORK_JOB_RETRY_BACKOFF_SECONDS: ${NETWORK_JOB_RETRY_BACKOFF_SECONDS:-[10, 60]}
+      NETWORK_INPUT_MAX_BYTES: ${NETWORK_INPUT_MAX_BYTES:-20971520}
+      SCN_WORKER_NETWORK_JOB_HEALTH_HOST: 0.0.0.0
+      SCN_WORKER_NETWORK_JOB_HEALTH_PORT: "8021"
+    expose:
+      - "8021"
+    volumes:
+      - network_job_import:/var/lib/smart-drainage/import
+      - worker_logs:/app/logs
+      - ./docker/backend/healthcheck.py:/opt/scn/healthcheck.py:ro
+    networks:
+      - scn-network
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "/opt/scn/healthcheck.py", "--url", "http://127.0.0.1:8021/readyz", "--timeout", "5"]
+      interval: 15s
+      timeout: 7s
+      start_period: 60s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  # ===================== Nowcast worker (reserved lane + scheduler singleton) =====================
+  # nowcast-worker owns two singletons: the advisory-locked scheduler and
+  # worker_slots slot 2, which is never lent to the general simulation lane.
+  nowcast-worker:
+    image: smart-city-drainage-backend:local
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.cpu
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-http://deb.debian.org}
+    restart: unless-stopped
+    init: true
+    command: ["python", "-m", "app.workers.nowcast_worker"]
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 2g
+    mem_reservation: 512m
+    cpus: 1.0
+    pids_limit: 256
+    stop_grace_period: 30s
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to the encoded PostgreSQL URL}
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL with the Redis password}
+      HYDRAULIC_SPATIAL_BACKEND: ${HYDRAULIC_SPATIAL_BACKEND:-portable}
+      HYDRAULIC_SCHEMA_REVISION: 0008_hydraulic_retention_seed
+      HYDRAULIC_SANDBOX_ROOT: /var/lib/smart-drainage/sandbox
+      HYDRAULIC_ARTIFACT_ROOT: /opt/scn/hydraulic/artifacts
+      # A missing or unverifiable policy config keeps this worker unready and
+      # creates no run, so the path is required rather than defaulted.
+      FORECAST_POLICY_CONFIG_PATH: /opt/scn/hydraulic/forecast-policy/forecast-policy.json
+      NOWCAST_INTERVAL_MINUTES: ${NOWCAST_INTERVAL_MINUTES:-10}
+      NOWCAST_HORIZON_MINUTES: ${NOWCAST_HORIZON_MINUTES:-120}
+      NOWCAST_STEP_MINUTES: ${NOWCAST_STEP_MINUTES:-5}
+      NOWCAST_DEADLINE_SECONDS: ${NOWCAST_DEADLINE_SECONDS:-180}
+      NOWCAST_MAX_RETRIES: ${NOWCAST_MAX_RETRIES:-2}
+      NOWCAST_RETRY_BACKOFF_SECONDS: ${NOWCAST_RETRY_BACKOFF_SECONDS:-[5, 15]}
+      SIM_LEASE_SECONDS: ${SIM_LEASE_SECONDS:-30}
+      SIM_HEARTBEAT_SECONDS: ${SIM_HEARTBEAT_SECONDS:-10}
+      # One materializer attempt per invocation, shell=False.  The worker fails
+      # closed when this is empty or unresolvable, exactly as the simulation
+      # worker does for SIMULATION_SOLVER_COMMAND.
+      NOWCAST_RUNNER_COMMAND: ${NOWCAST_RUNNER_COMMAND:-python,-m,app.workers.nowcast_materializer}
+      SCN_WORKER_NOWCAST_HEALTH_HOST: 0.0.0.0
+      SCN_WORKER_NOWCAST_HEALTH_PORT: "8022"
+    expose:
+      - "8022"
+    volumes:
+      - simulation_sandbox:/var/lib/smart-drainage/sandbox
+      - worker_logs:/app/logs
+      - ./docker/hydraulic:/opt/scn/hydraulic:ro
+      - ./docker/backend/healthcheck.py:/opt/scn/healthcheck.py:ro
+    networks:
+      - scn-network
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "/opt/scn/healthcheck.py", "--url", "http://127.0.0.1:8022/readyz", "--timeout", "5"]
+      interval: 15s
+      timeout: 7s
+      start_period: 60s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  # ===================== Outbox relay (single logical publisher) =====================
+  # outbox-relay publishes committed hydraulic.event_outbox rows to the
+  # scn:forecast Redis channel.  It publishes events only; its own registration
+  # key is written by this process after a real Redis SET.
+  outbox-relay:
+    image: smart-city-drainage-backend:local
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.cpu
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-http://deb.debian.org}
+    restart: unless-stopped
+    init: true
+    command: ["python", "-m", "app.workers.outbox_relay"]
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    mem_reservation: 256m
+    cpus: 1.0
+    pids_limit: 128
+    stop_grace_period: 30s
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to the encoded PostgreSQL URL}
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL with the Redis password}
+      HYDRAULIC_SPATIAL_BACKEND: ${HYDRAULIC_SPATIAL_BACKEND:-portable}
+      HYDRAULIC_SCHEMA_REVISION: 0008_hydraulic_retention_seed
+      SCN_WORKER_OUTBOX_RELAY_HEALTH_HOST: 0.0.0.0
+      SCN_WORKER_OUTBOX_RELAY_HEALTH_PORT: "8023"
+      # A relay with a deep backlog still needs to answer /readyz promptly, so
+      # it idles briefly between batches rather than spinning.
+      SCN_WORKER_OUTBOX_RELAY_IDLE_SECONDS: ${SCN_WORKER_OUTBOX_RELAY_IDLE_SECONDS:-0.5}
+      SCN_WORKER_OUTBOX_RELAY_PROBE_SECONDS: ${SCN_WORKER_OUTBOX_RELAY_PROBE_SECONDS:-5}
+    expose:
+      - "8023"
+    volumes:
+      - worker_logs:/app/logs
+      - ./docker/backend/healthcheck.py:/opt/scn/healthcheck.py:ro
+    networks:
+      - scn-network
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "/opt/scn/healthcheck.py", "--url", "http://127.0.0.1:8023/readyz", "--timeout", "5"]
+      interval: 15s
+      timeout: 7s
+      start_period: 60s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  # ===================== Notification sink (internal webhook receiver) =====================
+  # Development/demo only.  It gives a fresh `docker compose up` a real,
+  # reachable webhook destination so notification-worker can satisfy its
+  # fail-closed `_probe_transport` startup check and the delivery lane is
+  # exercisable without an external mail relay or a public HTTPS receiver.
+  #
+  # Internal only: `expose:` with no `ports:`, so it is reachable from the
+  # scn-network bridge and from nothing else.  Nginx does not proxy it.
+  #
+  # It verifies the same X-Forecast-Signature HMAC that
+  # NotificationService.send_webhook computes, so a recorded delivery is a real
+  # signature round-trip.  Unsigned or mis-signed bodies get 401 and are never
+  # recorded.
+  #
+  # Scope limit, stated plainly: this does NOT make the worker deliver to it.
+  # NotificationService._is_https_webhook refuses any target that is not public
+  # HTTPS on port 443, so an internal Compose hostname is rejected by the SSRF
+  # allowlist before a socket is opened and the delivery row settles
+  # `suppressed`.  That guard is deliberately not relaxed here.  See
+  # docs/notification-sink.md.
+  notification-sink:
+    image: smart-city-drainage-backend:local
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.cpu
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-http://deb.debian.org}
+    restart: unless-stopped
+    init: true
+    command: ["python", "/opt/scn/notification-sink/sink.py"]
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=16m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    mem_reservation: 32m
+    cpus: 0.5
+    pids_limit: 64
+    stop_grace_period: 10s
+    environment:
+      NOTIFICATION_SINK_HOST: 0.0.0.0
+      NOTIFICATION_SINK_PORT: "8030"
+      # Shares the worker's HMAC secret so the sink can verify what the worker
+      # signs.  DEV-ONLY DEFAULT: the fallback below is a public placeholder,
+      # not a secret.  Export ALERT_WEBHOOK_SECRET before any real deployment.
+      NOTIFICATION_SINK_WEBHOOK_SECRET: ${ALERT_WEBHOOK_SECRET:-dev-only-not-a-real-secret-change-me}
+      NOTIFICATION_SINK_MAX_BODY_BYTES: "1048576"
+      NOTIFICATION_SINK_HISTORY: "200"
+    expose:
+      - "8030"
+    volumes:
+      - ./docker/notification-sink:/opt/scn/notification-sink:ro
+      - ./docker/backend/healthcheck.py:/opt/scn/healthcheck.py:ro
+    networks:
+      - scn-network
+    healthcheck:
+      test: ["CMD", "python", "/opt/scn/healthcheck.py", "--url", "http://127.0.0.1:8030/health", "--timeout", "5"]
+      interval: 15s
+      timeout: 7s
+      start_period: 10s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  # ===================== Notification worker (SMTP / webhook delivery) =====================
+  # notification-worker is the only process that turns
+  # hydraulic.notification_deliveries rows into external side effects.
+  notification-worker:
+    image: smart-city-drainage-backend:local
+    build:
+      context: ./backend
+      dockerfile: ../docker/backend/Dockerfile.cpu
+      args:
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        DEBIAN_MIRROR: ${DEBIAN_MIRROR:-http://deb.debian.org}
+    restart: unless-stopped
+    init: true
+    command: ["python", "-m", "app.workers.notification_worker"]
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    mem_reservation: 256m
+    cpus: 1.0
+    pids_limit: 128
+    stop_grace_period: 30s
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL to the encoded PostgreSQL URL}
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL with the Redis password}
+      HYDRAULIC_SPATIAL_BACKEND: ${HYDRAULIC_SPATIAL_BACKEND:-portable}
+      HYDRAULIC_SCHEMA_REVISION: 0008_hydraulic_retention_seed
+      # This worker deliberately does NOT declare DEPLOYMENT_ENVIRONMENT:
+      # production mode makes Settings demand the API's JWT signing key, and an
+      # SMTP/webhook delivery process has no reason to hold it.  The production
+      # behaviour this worker does need — refusing to send an unsigned webhook —
+      # is enforced by its own fail-closed startup check instead, which is
+      # stricter than the API's environment-flagged rule.
+      SMTP_ENABLED: ${SMTP_ENABLED:-false}
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-true}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-noreply@smartcity.local}
+      ALERT_EMAIL_RECIPIENTS: ${ALERT_EMAIL_RECIPIENTS:-[]}
+      # send_webhook returns early unless this is on, so a webhook URL alone
+      # would be silently counted as attempted-and-failed.  Default compose
+      # turns it on because the stack ships the internal sink; production
+      # overrides ALERT_WEBHOOK_URLS with a real receiver (docs/notification-sink.md).
+      WEBHOOK_ENABLED: ${WEBHOOK_ENABLED:-true}
+      # Default destination is the internal notification-sink on the compose
+      # network.  NOTE: NotificationService._is_https_webhook rejects this URL
+      # (plain http, non-443 port, private container address), so deliveries
+      # to it settle `suppressed` — that is the SSRF guard working, not a bug.
+      # Point this at a real public HTTPS endpoint in production.
+      ALERT_WEBHOOK_URLS: ${ALERT_WEBHOOK_URLS:-["http://notification-sink:8030/alerts"]}
+      # Mandatory whenever ALERT_WEBHOOK_URLS is set: without it every webhook
+      # would go out unsigned, so the worker refuses to start instead
+      # (probe_webhook_secret).
+      #
+      # The fallback is a DEV/DEMO PLACEHOLDER, printed in this tracked file.
+      # Export a real ALERT_WEBHOOK_SECRET and override ALERT_WEBHOOK_URLS with
+      # a public HTTPS receiver before any production deployment — see
+      # docs/notification-sink.md.  It is not a Settings field (the worker reads
+      # it straight from os.environ), so it deliberately stays out of
+      # .env.example, whose keys must match Settings.model_fields exactly.
+      ALERT_WEBHOOK_SECRET: ${ALERT_WEBHOOK_SECRET:-dev-only-not-a-real-secret-change-me}
+      NOTIFICATION_MAX_ATTEMPTS: ${NOTIFICATION_MAX_ATTEMPTS:-5}
+      SIM_LEASE_SECONDS: ${SIM_LEASE_SECONDS:-30}
+      SIM_HEARTBEAT_SECONDS: ${SIM_HEARTBEAT_SECONDS:-10}
+      SCN_WORKER_NOTIFICATION_HEALTH_HOST: 0.0.0.0
+      SCN_WORKER_NOTIFICATION_HEALTH_PORT: "8024"
+    expose:
+      - "8024"
+    volumes:
+      - worker_logs:/app/logs
+      - ./docker/backend/healthcheck.py:/opt/scn/healthcheck.py:ro
+    networks:
+      - scn-network
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+      # The default ALERT_WEBHOOK_URLS target.  Ordering is explicit so a
+      # healthy worker never implies a healthy sink.
+      notification-sink:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "/opt/scn/healthcheck.py", "--url", "http://127.0.0.1:8024/readyz", "--timeout", "5"]
+      interval: 15s
+      timeout: 7s
+      start_period: 60s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
 
   # ===================== Nginx (反向代理 + 静态资源) =====================
   nginx:
-    image: nginx:alpine
-    container_name: scn-nginx
+    image: nginx@sha256:feb6f75a08aa55b44576f98c15b8859819ecf54f3e4d2157f42c2d01cb58a3d2
     restart: unless-stopped
+    user: "101:101"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    mem_reservation: 64m
+    cpus: 1.0
+    pids_limit: 100
     ports:
-      - "8080:80"
-      - "8443:443"
+      - "8080:8080"
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
@@ -126,6 +690,26 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+      simulation-worker:
+        condition: service_healthy
+      # The API's /readyz already fails closed unless all five worker
+      # registration heartbeats are fresh, so waiting on backend healthy
+      # implies these are up.  Naming them here makes the ordering explicit
+      # and keeps Nginx from serving while a worker is still preflighting.
+      network-job-worker:
+        condition: service_healthy
+      nowcast-worker:
+        condition: service_healthy
+      outbox-relay:
+        condition: service_healthy
+      notification-worker:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/nginx-health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
   # ===================== Frontend (开发模式 - 可选) =====================
   # 正式部署时前端由 Nginx 托管静态文件
@@ -133,19 +717,43 @@ services:
     build:
       context: ./frontend
       dockerfile: ../docker/frontend/Dockerfile
-    container_name: scn-frontend
+      args:
+        NODE_IMAGE: ${NODE_IMAGE:-node:18.20.8-alpine}
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org/}
+      additional_contexts:
+        scn_frontend_deploy: ./docker/frontend
     restart: unless-stopped
+    user: "101:101"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    mem_reservation: 64m
+    cpus: 1.0
+    pids_limit: 100
     ports:
-      - "3000:80"
+      - "3000:8080"
     networks:
       - scn-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/nginx-health >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     profiles:
       - production
 
   # ===================== Prometheus (监控指标) =====================
   prometheus:
-    image: prom/prometheus:v2.48.0
-    container_name: scn-prometheus
+    image: prom/prometheus@sha256:b440bc0e8aa5bab44a782952c09516b6a50f9d7b2325c1ffafac7bc833298e2e
     profiles:
       - monitoring
     ports:
@@ -160,15 +768,14 @@ services:
 
   # ===================== Grafana (监控仪表盘) =====================
   grafana:
-    image: grafana/grafana:10.3.0
-    container_name: scn-grafana
+    image: grafana/grafana@sha256:2c356b4a525db7d3fd9b5e54350b8c67c72bbbf3101d298b701d548f06ba2172
     profiles:
       - monitoring
     ports:
       - "3001:3000"
     environment:
       GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: Grafana@2024
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?set GRAFANA_ADMIN_PASSWORD}
       GF_USERS_ALLOW_SIGN_UP: "false"
     volumes:
       - grafanadata:/var/lib/grafana
@@ -186,5 +793,10 @@ volumes:
   redisdata:
   influxdata:
   hls_media:
+  backend_logs:
+  worker_logs:
+  simulation_sandbox:
+  simulation_results:
+  network_job_import:
   prometheusdata:
   grafanadata:

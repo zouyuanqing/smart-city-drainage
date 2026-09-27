@@ -1,0 +1,29 @@
+# Repository-root build context.
+#
+# The G5 gate builds docker/hydraulic-gates/g5-browser.Dockerfile with this
+# directory as the context, so this is the only .dockerignore it reads (the
+# compose builds use contexts ./backend and ./frontend and keep their own
+# ignore rules, untouched here). Without it every G5 build uploads the whole
+# working tree: backend/.venv alone is 1.7 GiB and frontend/node_modules
+# another 377 MiB, none of which the G5 image consumes.
+#
+# Every entry is a pattern, never a bare top-level directory, so none of them
+# can narrow a ./backend or ./frontend context for another build. Nothing the
+# G5 image needs is excluded: frontend/package.json, frontend/package-lock.json,
+# frontend/.npmrc, frontend/src, frontend/public, frontend/performance and the
+# frontend build config all stay in context.
+#
+# This takes the context from 2.4 GiB to roughly 200 MiB.
+
+.git
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/*.tsbuildinfo
+artifacts
+**/*.db
+**/*.log
+.env
+.env.*

@@ -1,0 +1,6 @@
+{
+  "schema": "hydraulic-ac-e2e-v2",
+  "fixture_id": "ac-smoke-v1-current-contract",
+  "extends": "frontend-acceptance-v1.json",
+  "extends_sha256": "eb5bed27b6154f44b75d6d5ec3f4142635cc36d48b76fb48c1253ed9b0a29415"
+}

@@ -1,0 +1,567 @@
+{
+  "schema": "hydraulic-ac-e2e-v2",
+  "fixture_id": "frontend-acceptance-v1",
+  "build_dir": "frontend/dist",
+  "api_manifest": {
+    "path": "api-v1/manifest.json",
+    "sha256": "0c6ad6e8d9464a4448dde58a885c096bdf552ee817c0a8310fdfb77211096a31"
+  },
+  "viewport": {
+    "width": 1440,
+    "height": 900
+  },
+  "scenarios": [
+    {
+      "id": "AC-7-viewer-simulation-read-only",
+      "acceptance_criteria": "AC-7",
+      "behaviors": ["role_readonly", "timeline_playback", "forecast_sse"],
+      "path": "/simulation",
+      "local_storage": {
+        "scn_language": "en",
+        "scn_access_token": "e2e-viewer-token",
+        "scn_user": "{\"role\":\"viewer\"}",
+        "scn_user_role": "viewer"
+      },
+      "steps": [
+        {
+          "type": "wait_for_selector",
+          "selector": "[data-testid=\"simulation-page\"]"
+        },
+        {
+          "type": "wait_for_selector",
+          "selector": "canvas.hydraulic-map-canvas"
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "attribute_number_gte",
+            "selector": "[data-testid=\"simulation-render-stats\"]",
+            "name": "data-drawn",
+            "value": 1
+          }
+        },
+        {
+          "type": "wait_for_selector",
+          "selector": "[data-testid=\"forecast-empty\"]"
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_disabled",
+            "selector": "[data-testid=\"simulation-submit\"]"
+          }
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_disabled",
+            "selector": "[data-testid=\"rainfall-name\"]"
+          }
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_disabled",
+            "selector": "[data-testid=\"simulation-map-mode-difference\"]"
+          }
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": "[data-testid=\"simulation-observed-status\"]",
+            "text": "Observed comparison ready"
+          }
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "count_equals",
+            "selector": "[data-testid=\"forecast-risk-item\"]",
+            "count": 0
+          }
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"simulation-playback-4x\"]"
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "attribute_equals",
+            "selector": "[data-testid=\"simulation-playback-4x\"]",
+            "name": "aria-pressed",
+            "value": "true"
+          }
+        },
+        {
+          "type": "key",
+          "selector": "[data-testid=\"simulation-frame-timeline\"]",
+          "key": "End"
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "attribute_equals",
+            "selector": "[data-testid=\"simulation-frame-timeline\"]",
+            "name": "data-frame-index",
+            "value": "1"
+          }
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"simulation-submit\"]"
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_disabled",
+            "selector": "[data-testid=\"simulation-submit\"]"
+          }
+        },
+        {
+          "type": "wait_for_selector",
+          "selector": "[data-testid=\"forecast-risk-item\"]"
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": "[data-testid=\"forecast-risk-item\"]",
+            "text": "n1"
+          }
+        }
+      ],
+      "expected_requests": [
+        {
+          "method": "GET",
+          "path": "/api/models/status",
+          "headers": {
+            "authorization": "Bearer e2e-viewer-token"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/networks",
+          "query": {
+            "status": "active",
+            "limit": "200"
+          },
+          "headers": {
+            "authorization": "Bearer e2e-viewer-token"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/simulations",
+          "query": {
+            "network_id": "11111111-1111-4111-8111-111111111111",
+            "limit": "50"
+          },
+          "headers": {
+            "authorization": "Bearer e2e-viewer-token"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/rainfall-scenarios",
+          "query": {
+            "network_id": "11111111-1111-4111-8111-111111111111",
+            "limit": "200"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/networks/11111111-1111-4111-8111-111111111111/map-data",
+          "query": {
+            "revision_id": "22222222-2222-4222-8222-222222222222",
+            "zoom": "13",
+            "limit": "2000",
+            "simplify": "true",
+            "layers": "nodes,pipes,catchments,ponding"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/simulations/55555555-5555-4555-8555-555555555555/frames"
+        },
+        {
+          "method": "GET",
+          "path": "/api/simulations/55555555-5555-4555-8555-555555555555/frames/1"
+        },
+        {
+          "method": "GET",
+          "path": "/api/simulations/55555555-5555-4555-8555-555555555555/observed-comparison"
+        },
+        {
+          "method": "GET",
+          "path": "/api/forecast/latest",
+          "query": {
+            "network_id": "11111111-1111-4111-8111-111111111111",
+            "limit": "200"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/forecast/risk-ranking",
+          "query": {
+            "network_id": "11111111-1111-4111-8111-111111111111",
+            "horizon_minutes": "120",
+            "limit": "5"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/forecast/events",
+          "query": {
+            "network_id": "11111111-1111-4111-8111-111111111111"
+          },
+          "headers": {
+            "authorization": "Bearer e2e-viewer-token",
+            "accept": "text/event-stream"
+          }
+        }
+      ],
+      "forbidden_requests": [
+        {
+          "method": "POST",
+          "path": "/api/simulations"
+        },
+        {
+          "method": "POST",
+          "path": "/api/rainfall-scenarios"
+        }
+      ]
+    },
+    {
+      "id": "AC-3-AC-4-AC-6-operator-simulation-workflow",
+      "acceptance_criteria": "AC-3,AC-4,AC-6,AC-7",
+      "behaviors": ["rainfall_edit_submit", "timeline_playback", "ab_comparison", "forecast_sse"],
+      "path": "/simulation",
+      "local_storage": {
+        "scn_language": "en",
+        "scn_access_token": "e2e-operator-token",
+        "scn_user": "{\"role\":\"operator\"}",
+        "scn_user_role": "operator"
+      },
+      "steps": [
+        {
+          "type": "wait_for_selector",
+          "selector": "[data-testid=\"simulation-page\"]"
+        },
+        {
+          "type": "wait_for_selector",
+          "selector": "canvas.hydraulic-map-canvas"
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "attribute_number_gte",
+            "selector": "[data-testid=\"simulation-render-stats\"]",
+            "name": "data-drawn",
+            "value": 1
+          }
+        },
+        {
+          "type": "wait_for_selector",
+          "selector": "[data-testid=\"forecast-empty\"]"
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_enabled",
+            "selector": "[data-testid=\"rainfall-name\"]"
+          }
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_enabled",
+            "selector": "[data-testid=\"simulation-submit\"]"
+          }
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": "[data-testid=\"rainfall-sample-count\"]",
+            "text": "13 / 13 samples"
+          }
+        },
+        {
+          "type": "input",
+          "selector": "[data-testid=\"rainfall-name\"]",
+          "value": "Operator edited storm"
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"rainfall-add-sample\"]"
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": "[data-testid=\"rainfall-sample-count\"]",
+            "text": "14 / 14 samples"
+          }
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"rainfall-submit\"]"
+        },
+        {
+          "type": "wait_for_selector",
+          "selector": "[role=\"status\"][data-testid=\"rainfall-created\"]"
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"simulation-submit\"]"
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "attribute_equals",
+            "selector": "[data-testid=\"idempotency-receipt\"]",
+            "name": "data-state",
+            "value": "new"
+          }
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"simulation-playback-4x\"]"
+        },
+        {
+          "type": "key",
+          "selector": "[data-testid=\"simulation-frame-timeline\"]",
+          "key": "End"
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "attribute_equals",
+            "selector": "[data-testid=\"simulation-frame-timeline\"]",
+            "name": "data-frame-index",
+            "value": "1"
+          }
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"comparison-baseline-select\"] .ant-select-selector"
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": ".comparison-baseline-dropdown",
+            "text": "55555555 · py_mw"
+          }
+        },
+        {
+          "type": "mouse_click_text",
+          "root": ".comparison-baseline-dropdown",
+          "text": "55555555 · py_mw"
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": "[data-testid=\"comparison-baseline-select\"]",
+            "text": "55555555"
+          }
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"comparison-candidate-select\"] .ant-select-selector"
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": ".comparison-candidate-dropdown",
+            "text": "66666666 · py_mw"
+          }
+        },
+        {
+          "type": "mouse_click_text",
+          "root": ".comparison-candidate-dropdown",
+          "text": "66666666 · py_mw"
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": "[data-testid=\"comparison-candidate-select\"]",
+            "text": "66666666"
+          }
+        },
+        {
+          "type": "wait_until",
+          "assertion": {
+            "type": "selector_enabled",
+            "selector": "[data-testid=\"comparison-refresh\"]"
+          }
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"comparison-refresh\"]"
+        },
+        {
+          "type": "wait_for_selector",
+          "selector": "[data-testid=\"comparison-kpis\"]"
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": "[data-testid=\"comparison-kpis\"]",
+            "text": "22222222"
+          }
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": "[data-testid=\"comparison-metrics\"]",
+            "text": "max_node_depth_m"
+          }
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_text_contains",
+            "selector": "[data-testid=\"comparison-metrics\"]",
+            "text": "-0.14"
+          }
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"comparison-mode-difference\"]"
+        },
+        {
+          "type": "click",
+          "selector": "[data-testid=\"simulation-map-mode-difference\"]"
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "attribute_equals",
+            "selector": "[data-testid=\"simulation-map-frame\"]",
+            "name": "data-comparison-mode",
+            "value": "difference"
+          }
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "selector_visible",
+            "selector": "canvas.hydraulic-map-canvas"
+          }
+        },
+        {
+          "type": "wait_for_selector",
+          "selector": "[data-testid=\"forecast-risk-item\"]"
+        }
+      ],
+      "expected_requests": [
+        {
+          "method": "POST",
+          "path": "/api/rainfall-scenarios",
+          "headers": {
+            "authorization": "Bearer e2e-operator-token",
+            "idempotency-key": {
+              "$regex": "^rainfall-11111111-1111-4111-8111-111111111111-"
+            }
+          },
+          "body": {
+            "network_id": "11111111-1111-4111-8111-111111111111",
+            "name": "Operator edited storm",
+            "kind": "design",
+            "return_period_years": 50,
+            "step_seconds": 300,
+            "duration_seconds": 3900,
+            "source_type": "synthetic"
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/simulations",
+          "headers": {
+            "authorization": "Bearer e2e-operator-token",
+            "idempotency-key": {
+              "$regex": "^simulation-"
+            }
+          },
+          "body": {
+            "network_id": "11111111-1111-4111-8111-111111111111",
+            "network_revision_id": "22222222-2222-4222-8222-222222222222",
+            "rainfall_scenario_id": "99999999-9999-4999-8999-999999999998",
+            "parameter_set_id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+            "duration_seconds": 86400,
+            "frame_interval_seconds": 300,
+            "ponding_enabled": true,
+            "strict_stability": true,
+            "solver_selection": "auto"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/simulations/55555555-5555-4555-8555-555555555555/compare/66666666-6666-4666-8666-666666666666",
+          "headers": {
+            "authorization": "Bearer e2e-operator-token"
+          }
+        },
+        {
+          "method": "GET",
+          "path": "/api/simulations/66666666-6666-4666-8666-666666666666/frames"
+        },
+        {
+          "method": "GET",
+          "path": "/api/simulations/66666666-6666-4666-8666-666666666666/frames/0"
+        },
+        {
+          "method": "GET",
+          "path": "/api/forecast/events",
+          "query": {
+            "network_id": "11111111-1111-4111-8111-111111111111"
+          },
+          "headers": {
+            "authorization": "Bearer e2e-operator-token",
+            "accept": "text/event-stream"
+          }
+        }
+      ],
+      "forbidden_requests": []
+    },
+    {
+      "id": "AC-7-unauthenticated-simulation-redirect",
+      "acceptance_criteria": "AC-7",
+      "behaviors": ["role_readonly"],
+      "path": "/simulation",
+      "local_storage": {},
+      "steps": [
+        {
+          "type": "wait_for_selector",
+          "selector": "input[type=\"password\"]"
+        },
+        {
+          "type": "assert",
+          "assertion": {
+            "type": "path_equals",
+            "path": "/login"
+          }
+        }
+      ],
+      "expected_requests": [],
+      "forbidden_requests": [
+        {
+          "method": "GET",
+          "path": "/api/simulations"
+        },
+        {
+          "method": "GET",
+          "path": "/api/networks"
+        }
+      ]
+    }
+  ]
+}

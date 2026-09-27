@@ -1,0 +1,48 @@
+{
+  "schema": "hydraulic-frontend-performance-browser-v1",
+  "fixture_id": "twin-map-5k-10k-v1",
+  "fixture_version": 2,
+  "seed": 1592614637,
+  "data_source": "fixture_api_production_modules_v1",
+  "input_counts": {
+    "nodes": 5000,
+    "pipes": 10000,
+    "catchments": 1000
+  },
+  "frames": {
+    "count": 289,
+    "interval_minutes": 5,
+    "duration_minutes": 1440
+  },
+  "viewport": {
+    "width": 1920,
+    "height": 1080
+  },
+  "workload": {
+    "duration_seconds": 60,
+    "pan_steps": 3600,
+    "zoom_steps": 3600,
+    "playback_frames": 240,
+    "layer_toggles": 120,
+    "selection_changes": 212
+  },
+  "thresholds": {
+    "min_presented_fps": 25,
+    "max_request_animation_frame_p95_ms": 50,
+    "max_long_task_ms": 200,
+    "max_cache_bytes": 268435456,
+    "max_map_api_p95_ms": 500,
+    "min_sample_count": 1000
+  },
+  "acceptance": {
+    "scope": "PRD_G5",
+    "target_environment": {
+      "node_version": "18.20.8",
+      "physical_cores": 4,
+      "ram_bytes": 8589934592,
+      "gpu": "disabled_software_rasterization"
+    },
+    "browser": "production-bundled-headless-chromium",
+    "note": "The production browser bundle imports ViewportIndex, SimulationMapController/Canvas, encodeFrame and FrameCache. API latency is measured against the frozen local fixture API."
+  }
+}

@@ -1,0 +1,62 @@
+name: smart-city-drainage-database
+
+services:
+  postgres-postgis:
+    profiles: ["postgis"]
+    build:
+      context: ../..
+      dockerfile: docker/postgres/postgis.Dockerfile
+      args:
+        BASE_IMAGE: ${POSTGIS_BASE_IMAGE:-timescale/timescaledb-ha:pg15@sha256:f49bf91b8966318e9bab4c44e4cc6c6533539dd44fcb049ee3334349dfcb233f}
+    image: smart-city-drainage-postgres-postgis:local
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smart_drainage}
+      POSTGRES_USER: ${POSTGRES_USER:-drainage_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD for the verification database}
+      HYDRAULIC_SPATIAL_BACKEND: postgis
+    ports:
+      - "127.0.0.1:${POSTGIS_HOST_PORT:-55432}:5432"
+    volumes:
+      - ../init-db.sql:/docker-entrypoint-initdb.d/10-init-db.sql:ro
+      - postgis-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+    shm_size: 256mb
+    stop_grace_period: 30s
+
+  postgres-portable:
+    profiles: ["portable"]
+    build:
+      context: ../..
+      dockerfile: docker/postgres/portable.Dockerfile
+      args:
+        BASE_IMAGE: ${PORTABLE_BASE_IMAGE:-timescale/timescaledb:2.17.2-pg15@sha256:d33b93c43b9db7a065f660847d4390d4a84ea1dd72395258aa8873f314de58c7}
+    image: smart-city-drainage-postgres-portable:local
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-smart_drainage}
+      POSTGRES_USER: ${POSTGRES_USER:-drainage_admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD for the verification database}
+      HYDRAULIC_SPATIAL_BACKEND: portable
+    ports:
+      - "127.0.0.1:${PORTABLE_HOST_PORT:-55433}:5432"
+    volumes:
+      - ../init-db.sql:/docker-entrypoint-initdb.d/10-init-db.sql:ro
+      - portable-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+    shm_size: 256mb
+    stop_grace_period: 30s
+
+volumes:
+  postgis-data:
+  portable-data:

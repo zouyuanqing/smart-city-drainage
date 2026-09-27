@@ -1,0 +1,40 @@
+{
+  "approval": {
+    "approved_at": "2026-09-25",
+    "basis": "Explicit cross-owner approval that migration 0002 landed after the immutable R0 design review.",
+    "owner": "hydraulic-schema",
+    "state": "APPROVED_POST_MIGRATION"
+  },
+  "head_revision": "0002_hydraulic_schema",
+  "migrations": [
+    {
+      "base_sha256": "80012276f1d1503f47057a9ee7bbd02de940283c5c12fa9a8db213e64d4e5cfd",
+      "base_state": "PRESENT",
+      "change": "PRESERVED_BASE",
+      "down_revision": null,
+      "live_sha256": "cd3516a92dbac312c3a661b17a6664f867847d2b239cdb1d0c8f11d9a1b6c8bb",
+      "path": "backend/alembic/versions/0001_initial.py",
+      "revision": "0001_initial"
+    },
+    {
+      "base_sha256": null,
+      "base_state": "ABSENT",
+      "change": "ADDED_AFTER_R0",
+      "down_revision": "0001_initial",
+      "live_sha256": "3c2f6539f84eedd324fd80aa1ff1b5e6c5b9f869e39d495dda3276295fbc0003",
+      "path": "backend/alembic/versions/0002_hydraulic_schema.py",
+      "revision": "0002_hydraulic_schema"
+    }
+  ],
+  "owner": "hydraulic-schema",
+  "phase": "post-migration",
+  "r0_review": {
+    "artifact": "artifacts/contracts/v3-independent-review.json",
+    "artifact_sha256": "90106f147bc7709d929ba678ed96c45d4d4745533654f61cbb84f822cc64bf9f",
+    "base_commit": "ca99e0485fb12fbecbd565e79d81f745f8d4a748",
+    "document_bundle_sha256": "5b9b2e3f54bb910706a2d130ff564ebaf3e2292c9db3ace449b62cd5006fa55d",
+    "verdict": "R0_DESIGN_PASS"
+  },
+  "schema": "approved-migration-v1",
+  "status": "APPROVED_POST_MIGRATION"
+}

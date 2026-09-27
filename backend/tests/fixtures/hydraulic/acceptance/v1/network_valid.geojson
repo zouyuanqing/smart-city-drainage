@@ -1,0 +1,36 @@
+{
+  "type": "FeatureCollection",
+  "properties": {
+    "entity_type": "node"
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "N-ACCEPTANCE-1",
+      "properties": {
+        "stable_key": "N-ACCEPTANCE-1",
+        "invert_elevation_m": 1.0,
+        "rim_elevation_m": 3.0,
+        "max_depth_m": 2.0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.3001, 31.2001]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "N-ACCEPTANCE-2",
+      "properties": {
+        "stable_key": "N-ACCEPTANCE-2",
+        "invert_elevation_m": 0.5,
+        "rim_elevation_m": 2.5,
+        "max_depth_m": 2.0
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [121.3002, 31.2002]
+      }
+    }
+  ]
+}

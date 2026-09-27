@@ -1,0 +1,23 @@
+{
+  "schema_version": "observed-predicted-comparison-v1",
+  "simulation_id": "55555555-5555-4555-8555-555555555555",
+  "status": "ready",
+  "pairs": [
+    {
+      "timestamp": "2026-09-24T00:00:00Z",
+      "observed": 0.2,
+      "predicted": 0.25,
+      "lower_bound": 0.2,
+      "upper_bound": 0.3
+    },
+    {
+      "timestamp": "2026-09-24T00:05:00Z",
+      "observed": null,
+      "predicted": 0.4,
+      "lower_bound": null,
+      "upper_bound": 0.5
+    }
+  ],
+  "coverage": { "observed_points": 1, "predicted_points": 2 },
+  "metrics": { "max_node_depth_m": 0.4 }
+}

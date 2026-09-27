@@ -1,0 +1,1 @@
+{"depth_floor_m":0.0001,"duration_s":86400,"gravity_mps2":9.80665,"max_courant":0.5,"max_substeps":20,"rain_step_s":300,"reporting_interval_s":300,"routing_mode":"motion_wave","schema":"hydraulic-solver-benchmark-solver-config-v1","solver_id":"py_mw"}

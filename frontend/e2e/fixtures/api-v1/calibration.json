@@ -1,0 +1,36 @@
+{
+  "calibration_run": {
+    "id": "calibration-ac-5",
+    "status": "completed",
+    "dataset_id": "external-verified-events-v1",
+    "evaluation_split": "test",
+    "observation_trust_level": "external_verified",
+    "event_count": 3,
+    "observation_pair_count": 36
+  },
+  "report": {
+    "network_revision_id": "revision-50y-24h-v1",
+    "rainfall_scenario_id": "rainfall-observed-event-v1",
+    "solver_id": "py_mw",
+    "baseline": {
+      "nse": 0.62,
+      "rmse_m": 0.18,
+      "peak_absolute_error_m": 0.31
+    },
+    "calibrated": {
+      "nse": 0.69,
+      "rmse_m": 0.16,
+      "peak_absolute_error_m": 0.3
+    },
+    "improvement": {
+      "nse_delta": 0.07,
+      "rmse_ratio": 0.89,
+      "peak_absolute_error_ratio": 0.97
+    },
+    "thresholds": {
+      "minimum_nse_delta": 0.05,
+      "maximum_rmse_ratio": 0.95,
+      "maximum_peak_error_ratio": 1.1
+    }
+  }
+}

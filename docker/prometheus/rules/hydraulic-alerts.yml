@@ -1,0 +1,121 @@
+groups:
+  - name: hydraulic.alerts
+    rules:
+      - alert: HydraulicMetricsAbsent
+        expr: absent(simulation_queue_depth) or absent(simulation_duration_seconds_count)
+        for: 10m
+        labels:
+          severity: critical
+          component: hydraulic-metrics
+        annotations:
+          summary: Hydraulic simulation metrics are absent
+          description: >-
+            Prometheus has not received simulation_queue_depth or
+            simulation_duration_seconds_count from the backend for 10 minutes.
+
+      - alert: SimulationQueueBacklog
+        expr: hydraulic:simulation_oldest_queued_seconds > 300
+        for: 10m
+        labels:
+          severity: warning
+          component: simulation-worker
+        annotations:
+          summary: Simulation queue is not draining
+          description: >-
+            The oldest queued simulation has waited for {{ $value | humanizeDuration }}.
+            Check worker registration, database leases, and solver health.
+
+      - alert: SimulationFailureRateHigh
+        expr: hydraulic:simulation_failure_ratio5m > 0.10 and increase(simulation_failures_total[10m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: simulation-worker
+        annotations:
+          summary: Simulation failure ratio is above 10 percent
+          description: >-
+            The 5-minute failure ratio is {{ $value | humanizePercentage }}.
+            Break down failures by error_code and correlate with solver logs.
+
+      - alert: SimulationSlotsSaturated
+        expr: hydraulic:simulation_active_slots >= 2
+        for: 15m
+        labels:
+          severity: warning
+          component: simulation-worker
+        annotations:
+          summary: Both simulation slots are continuously occupied
+          description: >-
+            The global concurrency limit is two. A sustained value of two can be
+            normal under load; investigate only with queue age or failed jobs.
+
+      - alert: NowcastSloP95Breached
+        expr: hydraulic:forecast_nowcast_to_alert_seconds_p95_5m > 180
+        for: 5m
+        labels:
+          severity: critical
+          component: nowcast
+        annotations:
+          summary: Nowcast-to-alert P95 exceeds 180 seconds
+          description: >-
+            The rolling five-minute P95 is {{ $value | humanizeDuration }},
+            above the frozen 180-second nowcast SLO.
+
+      - alert: ForecastOutboxBacklog
+        expr: hydraulic:forecast_outbox_backlog > 1000
+        for: 10m
+        labels:
+          severity: warning
+          component: outbox-relay
+        annotations:
+          summary: Forecast outbox backlog is growing
+          description: >-
+            {{ $value }} durable events are waiting for relay publication.
+            Check relay registration, Redis connectivity, and publication lag.
+
+      - alert: ForecastEventPublishLagHigh
+        expr: hydraulic:event_publish_lag_seconds > 30
+        for: 10m
+        labels:
+          severity: warning
+          component: outbox-relay
+        annotations:
+          summary: Forecast event publication lag is high
+          description: >-
+            Oldest unpublished event age is {{ $value | humanizeDuration }}.
+            Redis loss may delay fan-out but must not create business rows twice.
+
+      - alert: ForecastSseQueueOverflow
+        expr: increase(forecast_sse_queue_overflow_total[5m]) > 0
+        labels:
+          severity: warning
+          component: sse
+        annotations:
+          summary: SSE client queues overflowed
+          description: >-
+            One or more SSE clients required disconnect/resync. Do not silently
+            drop events; clients should use REST snapshot and Last-Event-ID.
+
+      - alert: NotificationDeliveryFailing
+        expr: sum(rate(notification_delivery_total{status=~"failed|dead_letter"}[10m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: notification-worker
+        annotations:
+          summary: Notification delivery failures are increasing
+          description: >-
+            Failed or dead-letter notification deliveries are increasing. Alert
+            state remains durable while delivery is retried.
+
+      - alert: HydraulicCleanupPending
+        expr: hydraulic_cleanup_pending_total > 0
+        for: 15m
+        labels:
+          severity: warning
+          component: cleanup-sweeper
+        annotations:
+          summary: Hydraulic sandbox cleanup remains pending
+          description: >-
+            Cleanup has been pending for at least 15 minutes. Inspect filesystem
+            capacity and sweeper logs; do not rerun the terminal simulation.

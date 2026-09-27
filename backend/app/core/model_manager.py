@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
+import stat
 import threading
 import time
 from dataclasses import dataclass, field
@@ -31,6 +33,74 @@ logger = logging.getLogger(__name__)
 # ============================================================
 # 类型定义
 # ============================================================
+
+MODEL_VERSION_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+MODEL_EXTENSIONS = (".pt", ".onnx", ".engine")
+_WINDOWS_RESERVED_NAMES = frozenset(
+    {"CON", "PRN", "AUX", "NUL"}
+    | {f"COM{index}" for index in range(1, 10)}
+    | {f"LPT{index}" for index in range(1, 10)}
+)
+
+
+class UnsafeModelPath(ValueError):
+    """Raised when a model version can escape the configured model root."""
+
+
+def validate_model_version(version: str) -> str:
+    """Validate a portable filename component before using it on disk."""
+    if (
+        not isinstance(version, str)
+        or version != version.strip()
+        or version.endswith(".")
+        or MODEL_VERSION_RE.fullmatch(version) is None
+        or version.partition(".")[0].upper() in _WINDOWS_RESERVED_NAMES
+    ):
+        raise UnsafeModelPath("model version contains unsafe path characters")
+    return version
+
+
+def _is_link_or_reparse(path: Path) -> bool:
+    """Recognize POSIX links and Windows reparse-point junctions."""
+    try:
+        attributes = getattr(path.lstat(), "st_file_attributes", 0)
+    except OSError:
+        return False
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    return path.is_symlink() or bool(attributes & reparse_flag)
+
+
+def model_storage_root() -> Path:
+    """Return a resolved, non-symlink model root and create it if needed."""
+    configured = Path(settings.MODEL_STORAGE_PATH).expanduser()
+    configured.mkdir(parents=True, exist_ok=True)
+    if _is_link_or_reparse(configured):
+        raise UnsafeModelPath("model storage root must not be a symlink")
+    return configured.resolve()
+
+
+def safe_model_path(
+    version: str,
+    extension: str | None = None,
+    *,
+    root: Path | None = None,
+) -> Path:
+    """Resolve a model path below the configured root without following links."""
+    safe_version = validate_model_version(version)
+    if extension is not None:
+        extension = extension.lower()
+        if extension not in MODEL_EXTENSIONS:
+            raise UnsafeModelPath("unsupported model extension")
+    storage = (root or model_storage_root()).resolve()
+    if root is not None and _is_link_or_reparse(Path(root)):
+        raise UnsafeModelPath("model storage root must not be a symlink")
+    candidate = storage / f"{safe_version}{extension or ''}"
+    if _is_link_or_reparse(candidate):
+        raise UnsafeModelPath("model path must not be a symlink")
+    resolved = candidate.resolve(strict=False)
+    if not resolved.is_relative_to(storage):
+        raise UnsafeModelPath("model path escapes the storage root")
+    return resolved
 
 
 class ModelStatus(str, Enum):
@@ -152,25 +222,34 @@ class ModelManager:
         Returns:
             {version_name: ModelMetadata} 映射
         """
-        storage = settings.model_storage_dir
+        storage = model_storage_root()
         discovered: dict[str, ModelMetadata] = {}
 
         for ext in ("*.pt", "*.onnx", "*.engine"):
             for file_path in storage.glob(ext):
-                version = file_path.stem  # 文件名作为版本名
-                file_stat = file_path.stat()
+                if _is_link_or_reparse(file_path) or not file_path.is_file():
+                    continue
+                try:
+                    resolved_path = file_path.resolve(strict=True)
+                    if not resolved_path.is_relative_to(storage):
+                        continue
+                    version = validate_model_version(file_path.stem)
+                    file_stat = resolved_path.stat()
+                except (OSError, UnsafeModelPath, ValueError):
+                    logger.warning("Skipping unsafe model repository entry")
+                    continue
 
                 metadata = ModelMetadata(
                     version=version,
-                    file_path=str(file_path.resolve()),
+                    file_path=str(resolved_path),
                     file_size_bytes=file_stat.st_size,
-                    model_type=self._guess_model_type(file_path),
+                    model_type=self._guess_model_type(resolved_path),
                 )
 
                 # 计算 SHA256
                 try:
-                    metadata.sha256_hash = self._compute_sha256(file_path)
-                except Exception:
+                    metadata.sha256_hash = self._compute_sha256(resolved_path)
+                except OSError:
                     metadata.sha256_hash = "unavailable"
 
                 discovered[version] = metadata
@@ -206,9 +285,7 @@ class ModelManager:
         """
         file_path = self._resolve_model_path(version)
         if file_path is None:
-            raise FileNotFoundError(
-                f"模型版本 '{version}' 不在仓库中，请先放入 {settings.model_storage_dir}"
-            )
+            raise FileNotFoundError(f"模型版本 '{version}' 不在受控模型仓库中")
 
         logger.info("🔄 [%s] 开始加载模型: %s", version, file_path)
 
@@ -270,9 +347,13 @@ class ModelManager:
             切换是否成功
 
         Raises:
-            ValueError: 目标版本与当前版本相同
+            ValueError: 目标模型与当前版本相同
             RuntimeError: 预加载或验证失败
         """
+        try:
+            target_version = validate_model_version(target_version)
+        except UnsafeModelPath as exc:
+            raise ValueError(str(exc)) from exc
         if target_version == self._active_version:
             raise ValueError(
                 f"目标版本 '{target_version}' 与当前活跃版本相同，无需切换"
@@ -372,7 +453,8 @@ class ModelManager:
             **kwargs: 传递给 YOLO model.predict() 的额外参数
 
         Returns:
-            检测结果列表: [{"class": "person", "confidence": 0.92, "bbox": [x1,y1,x2,y2]}, ...]
+            检测结果列表: [{"class": "person", "confidence": 0.92,
+                           "bbox": [x1,y1,x2,y2]}, ...]
         """
         if self._model is None:
             raise RuntimeError("没有活跃的模型可用，请先加载模型")
@@ -490,20 +572,20 @@ class ModelManager:
         )
 
     def _resolve_model_path(self, version: str) -> Optional[str]:
-        """根据版本名解析模型文件路径"""
-        # 先检查已注册的
-        if version in self._model_registry:
-            path = self._model_registry[version].file_path
-            if Path(path).exists():
-                return path
+        """根据版本名解析模型文件路径。"""
+        try:
+            version = validate_model_version(version)
+            storage = model_storage_root()
+        except (UnsafeModelPath, OSError):
+            return None
 
-        # 扫描仓库
-        storage = settings.model_storage_dir
-        for ext in (".pt", ".onnx", ".engine"):
-            candidate = storage / f"{version}{ext}"
-            if candidate.exists():
-                return str(candidate.resolve())
-
+        for ext in MODEL_EXTENSIONS:
+            try:
+                candidate = safe_model_path(version, ext, root=storage)
+            except UnsafeModelPath:
+                continue
+            if candidate.is_file() and not _is_link_or_reparse(candidate):
+                return str(candidate)
         return None
 
     def _guess_model_type(self, file_path: Path) -> str:

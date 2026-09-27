@@ -1,0 +1,141 @@
+{
+  "content_sha256": "52c09c2913994032d65efdb51a7e66578fbedc44835c5ca97da3ba3cea70a113",
+  "contract": {
+    "compose_file": "docker-compose.yml",
+    "compose_profiles": [
+      "monitoring",
+      "production"
+    ],
+    "digest_pin_marker": "@sha256:",
+    "digest_pinned_images": {
+      "grafana": "grafana/grafana@sha256:2c356b4a525db7d3fd9b5e54350b8c67c72bbbf3101d298b701d548f06ba2172",
+      "influxdb": "influxdb@sha256:991673dc2d237bd79b15d6627410d72de111387e7dac673dbb92cf3333ffcc8c",
+      "nginx": "nginx@sha256:feb6f75a08aa55b44576f98c15b8859819ecf54f3e4d2157f42c2d01cb58a3d2",
+      "postgres": "timescale/timescaledb@sha256:3f77046809de51aacf70719c3662f05e0bf9d29c0c7f9d8bda6bb57a0c6fe400",
+      "prometheus": "prom/prometheus@sha256:b440bc0e8aa5bab44a782952c09516b6a50f9d7b2325c1ffafac7bc833298e2e",
+      "redis": "redis@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99"
+    },
+    "forbidden_init_sql_markers": [
+      "CREATE TABLE",
+      "create_hypertable",
+      "INSERT INTO"
+    ],
+    "gate_profiles": [
+      "postgis",
+      "portable"
+    ],
+    "health_contract": {
+      "all_worker_heartbeats_required": true,
+      "probe_script": "docker/backend/healthcheck.py",
+      "probe_source": "scripts/verify_hydraulic_stack.py::gate_g6",
+      "probes": [
+        {
+          "expected_status": [
+            200
+          ],
+          "name": "backend-health",
+          "url": "http://127.0.0.1:8000/health"
+        },
+        {
+          "expected_status": [
+            200
+          ],
+          "name": "backend-readyz",
+          "url": "http://127.0.0.1:8000/readyz"
+        },
+        {
+          "expected_status": [
+            200
+          ],
+          "name": "nginx-health",
+          "url": "http://127.0.0.1:8080/health"
+        }
+      ],
+      "readiness_source": "backend/app/main.py::check_runtime_readiness",
+      "worker_heartbeat_keys": {
+        "network-job": "hydraulic:worker:heartbeat:network-job",
+        "notification": "hydraulic:worker:heartbeat:notification",
+        "nowcast": "hydraulic:worker:heartbeat:nowcast",
+        "outbox-relay": "hydraulic:worker:heartbeat:outbox-relay",
+        "simulation": "hydraulic:worker:heartbeat:simulation"
+      },
+      "worker_heartbeat_publishers": "NOT IMPLEMENTED",
+      "worker_heartbeat_window_seconds": 75
+    },
+    "init_sql_path": "docker/init-db.sql",
+    "local_image_build": {
+      "context": "./backend",
+      "dockerfile": "../docker/backend/Dockerfile.cpu"
+    },
+    "local_image_reference": "smart-city-drainage-backend:local",
+    "local_image_services": [
+      "backend",
+      "migrate",
+      "simulation-worker",
+      "network-job-worker",
+      "nowcast-worker",
+      "outbox-relay",
+      "notification-worker"
+    ],
+    "migrate": {
+      "command": [
+        "alembic",
+        "upgrade",
+        "head"
+      ],
+      "depends_on_postgres_condition": "service_healthy",
+      "restart_policy": "no"
+    },
+    "migration_gate_condition": "service_completed_successfully",
+    "migration_gate_services": [
+      "backend",
+      "network-job-worker",
+      "nowcast-worker",
+      "simulation-worker"
+    ],
+    "profile_env": {
+      "must_equal_gate_profile": true,
+      "service": "backend",
+      "variable": "HYDRAULIC_SPATIAL_BACKEND"
+    },
+    "required_services": [
+      "backend",
+      "frontend",
+      "grafana",
+      "influxdb",
+      "migrate",
+      "network-job-worker",
+      "nginx",
+      "notification-worker",
+      "nowcast-worker",
+      "outbox-relay",
+      "postgres",
+      "prometheus",
+      "redis",
+      "simulation-worker"
+    ],
+    "restore_contract_fixture": "backend/tests/fixtures/hydraulic/compose/restore-manifest-v1.json",
+    "services_without_host_ports": [
+      "influxdb",
+      "postgres",
+      "redis"
+    ],
+    "sse_nginx_directives": [
+      "proxy_buffering off",
+      "proxy_cache off",
+      "proxy_read_timeout 1h",
+      "proxy_set_header Connection \"\""
+    ],
+    "sse_nginx_glob": "docker/nginx/**/*.conf"
+  },
+  "evidence_state": "NOT_RUN",
+  "fixture_id": "compose-v1",
+  "schema": "hydraulic-compose-lock-v1",
+  "source_contract": {
+    "fixture_registry_gate": "g6",
+    "gate_entrypoint": "docs/hydraulic-twin/IMPLEMENTATION_CONTRACT.md#171-冻结-gate-entrypoint",
+    "verifier": "scripts/verify_hydraulic_stack.py",
+    "worker_readiness": "backend/app/main.py"
+  },
+  "statement": "This file freezes the G6 Compose topology/health/restore contract only. It is not a gate result, not a live-run artifact, and cannot make G6 or AC-8 pass."
+}

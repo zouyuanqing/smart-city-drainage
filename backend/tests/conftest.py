@@ -1,3 +1,7 @@
+import shutil
+import tempfile
+from pathlib import Path
+
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
@@ -7,7 +11,16 @@ from app.core.database import get_db_session
 from app.main import app
 from app.models.db_models import Base
 
-TEST_DATABASE_URL = "sqlite+aiosqlite:///./test.db"
+# A per-session database under the system temp directory, not ``./test.db``.
+#
+# The CWD-relative path made three things true at once: running pytest from the
+# repository root and from backend/ used *different* databases; two concurrent
+# pytest processes shared one file and dropped each other's tables mid-run; and
+# the session-end drop_all wiped the tables of whatever test.db happened to sit
+# in the working directory.  A unique path per session removes all three
+# without changing what the tests exercise.
+TEST_DB_DIR = Path(tempfile.mkdtemp(prefix="hydraulic-tests-"))
+TEST_DATABASE_URL = f"sqlite+aiosqlite:///{(TEST_DB_DIR / 'test.db').as_posix()}"
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -19,6 +32,7 @@ async def test_engine():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
+    shutil.rmtree(TEST_DB_DIR, ignore_errors=True)
 
 
 @pytest_asyncio.fixture

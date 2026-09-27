@@ -1,0 +1,28 @@
+{
+  "artifact": "pipe_surcharge_probability",
+  "bins": [
+    {
+      "metric": "fill_ratio",
+      "probability": 0.05
+    },
+    {
+      "metric": "fill_ratio",
+      "probability": 0.2
+    },
+    {
+      "metric": "fill_ratio",
+      "probability": 0.45
+    },
+    {
+      "metric": "fill_ratio",
+      "probability": 0.7
+    },
+    {
+      "metric": "fill_ratio",
+      "probability": 0.9
+    }
+  ],
+  "calibration_method": "reliability-diagram-v1",
+  "network_id": "11111111-1111-4111-8111-111111111111",
+  "schema_version": 1
+}

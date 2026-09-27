@@ -30,6 +30,7 @@ import { DeviceSearchFilter } from '@components/device/DeviceSearchFilter'
 import { WaterLevelChart } from '@components/charts/WaterLevelChart'
 import { FlowTrendChart } from '@components/charts/FlowTrendChart'
 import type { SensorReading, Alert, Device } from '@/types'
+import { ForecastRiskPanel } from '@/features/simulation/integration'
 
 // ---- 设备状态卡片 ----
 function DeviceCard({ device, reading }: { device: Device; reading?: SensorReading }) {
@@ -306,6 +307,8 @@ export function Dashboard() {
           <DigitalClock />
         </div>
       </div>
+
+      <ForecastRiskPanel compact />
 
       {/* 三栏主布局 */}
       <div className="flex-1 grid grid-cols-12 gap-3 min-h-0">
